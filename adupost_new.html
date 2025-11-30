@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADUPOST | Comunidad Logística</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        emerald: { 950: '#022c22', 50: '#ecfdf5', 500: '#10b981', 600: '#059669' },
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Animación de entrada para los posts */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .post-card { animation: slideUp 0.5s ease-out forwards; opacity: 0; }
+        .post-card:nth-child(1) { animation-delay: 0.1s; }
+        .post-card:nth-child(2) { animation-delay: 0.2s; }
+        .post-card:nth-child(3) { animation-delay: 0.3s; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-24 selection:bg-emerald-100 selection:text-emerald-800">
+
+    <!-- ================= HEADER FIJO ================= -->
+    <header class="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-b border-slate-200 z-40 transition-all duration-300">
+        <div class="max-w-md mx-auto px-4 py-3">
+            <div class="flex items-center justify-between mb-3">
+                <button onclick="window.history.back()" class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors">
+                    <i data-lucide="arrow-left" class="w-6 h-6 text-slate-600"></i>
+                </button>
+                <h1 class="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">ADUPOST</span>
+                    <span class="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full">BETA</span>
+                </h1>
+                <button class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors relative">
+                    <i data-lucide="bell" class="w-6 h-6 text-slate-600"></i>
+                    <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                </button>
+            </div>
+
+            <!-- Filtros / Tags (Scroll Horizontal) -->
+            <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                <button class="shrink-0 px-4 py-1.5 bg-slate-900 text-white rounded-full text-xs font-bold shadow-md">
+                    Todo
+                </button>
+                <button class="shrink-0 px-4 py-1.5 bg-white text-slate-500 border border-slate-200 rounded-full text-xs font-bold shadow-sm hover:border-emerald-500 hover:text-emerald-600 transition-colors">
+                    🔥 Tendencia
+                </button>
+                <button class="shrink-0 px-4 py-1.5 bg-white text-slate-500 border border-slate-200 rounded-full text-xs font-bold shadow-sm hover:border-blue-500 hover:text-blue-600 transition-colors">
+                    🚢 Operativa
+                </button>
+                <button class="shrink-0 px-4 py-1.5 bg-white text-slate-500 border border-slate-200 rounded-full text-xs font-bold shadow-sm hover:border-purple-500 hover:text-purple-600 transition-colors">
+                    ⚖️ Normativa
+                </button>
+                <button class="shrink-0 px-4 py-1.5 bg-white text-slate-500 border border-slate-200 rounded-full text-xs font-bold shadow-sm hover:border-orange-500 hover:text-orange-600 transition-colors">
+                    🆘 Ayuda
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Espaciador para el header fijo -->
+    <div class="h-32"></div>
+
+    <!-- ================= FEED PRINCIPAL ================= -->
+    <main class="max-w-md mx-auto px-4 space-y-4">
+
+        <!-- CAJA DE "CREAR POST" -->
+        <div class="post-card bg-white p-4 rounded-3xl shadow-soft border border-slate-100 relative overflow-hidden group">
+            <div class="flex gap-3">
+                <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm shrink-0">
+                    <span class="text-lg">👮‍♂️</span>
+                </div>
+                <div class="flex-1">
+                    <input type="text" placeholder="¿Qué está pasando en el puerto hoy?" class="w-full h-10 bg-slate-50 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all placeholder:text-slate-400">
+                </div>
+            </div>
+            <div class="flex justify-between items-center mt-3 pl-14">
+                <div class="flex gap-4">
+                    <button class="text-slate-400 hover:text-emerald-600 transition-colors"><i data-lucide="image" class="w-5 h-5"></i></button>
+                    <button class="text-slate-400 hover:text-blue-600 transition-colors"><i data-lucide="paperclip" class="w-5 h-5"></i></button>
+                    <button class="text-slate-400 hover:text-purple-600 transition-colors"><i data-lucide="smile" class="w-5 h-5"></i></button>
+                </div>
+                <button class="bg-slate-900 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-700 transition-colors">
+                    Publicar
+                </button>
+            </div>
+        </div>
+
+        <!-- POST 1: PREGUNTA (CON GAMIFICACIÓN) -->
+        <article class="post-card bg-white p-5 rounded-3xl shadow-soft border border-slate-100">
+            <!-- Header Autor -->
+            <div class="flex justify-between items-start mb-3">
+                <div class="flex gap-3">
+                    <div class="relative">
+                        <img src="https://i.pravatar.cc/100?img=11" alt="Avatar" class="w-10 h-10 rounded-full border-2 border-slate-100">
+                        <div class="absolute -bottom-1 -right-1 bg-purple-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full border border-white">PRO</div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Carlos Aduanas</h3>
+                        <p class="text-xs text-slate-400">Agente Senior • hace 2h</p>
+                    </div>
+                </div>
+                <button class="text-slate-300 hover:text-slate-600"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button>
+            </div>
+
+            <!-- Contenido -->
+            <div class="mb-3">
+                <span class="inline-block bg-orange-50 text-orange-600 text-[10px] font-bold px-2 py-0.5 rounded-md mb-2">🆘 DUDA ARANCELARIA</span>
+                <p class="text-slate-700 text-sm leading-relaxed">
+                    Colegas, tengo una duda sobre la partida 84.71. ¿Alguien ha tenido problemas recientes con la clasificación de tablets industriales con escáner integrado? 🤔
+                </p>
+            </div>
+
+            <!-- Stats / Acciones -->
+            <div class="flex items-center justify-between border-t border-slate-50 pt-3 mt-2">
+                <div class="flex gap-4">
+                    <button class="flex items-center gap-1 text-slate-400 hover:text-red-500 transition-colors group">
+                        <i data-lucide="heart" class="w-5 h-5 group-hover:fill-current"></i>
+                        <span class="text-xs font-bold">12</span>
+                    </button>
+                    <button class="flex items-center gap-1 text-slate-400 hover:text-blue-500 transition-colors">
+                        <i data-lucide="message-circle" class="w-5 h-5"></i>
+                        <span class="text-xs font-bold">5</span>
+                    </button>
+                </div>
+                <button class="text-slate-400 hover:text-emerald-600"><i data-lucide="share-2" class="w-5 h-5"></i></button>
+            </div>
+            
+            <!-- Comentario Destacado (Estilo Instructor) -->
+            <div class="mt-4 bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 flex gap-3">
+                <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold text-xs shrink-0">ADU</div>
+                <div>
+                    <p class="text-xs text-slate-600"><span class="font-bold text-emerald-700">Respuesta Verificada:</span> Generalmente se clasifican por su función principal. Si el escáner es accesorio, sigue siendo 8471.</p>
+                </div>
+            </div>
+        </article>
+
+        <!-- POST 2: IMAGEN / NOTICIA -->
+        <article class="post-card bg-white p-5 rounded-3xl shadow-soft border border-slate-100">
+            <div class="flex justify-between items-start mb-3">
+                <div class="flex gap-3">
+                    <div class="relative">
+                        <img src="https://i.pravatar.cc/100?img=5" alt="Avatar" class="w-10 h-10 rounded-full border-2 border-slate-100">
+                        <div class="absolute -bottom-1 -right-1 bg-blue-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full border border-white">PROF</div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Laura Logística</h3>
+                        <p class="text-xs text-slate-400">Instructora • hace 4h</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <span class="inline-block bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-md mb-2">📢 NOTICIA</span>
+                <p class="text-slate-700 text-sm mb-3">
+                    ¡Atención! Nuevos cambios en la regulación de ingreso de mercancías peligrosas. Revisen el boletín oficial de hoy. 🚨
+                </p>
+                <!-- Imagen del Post -->
+                <div class="rounded-2xl overflow-hidden h-40 bg-slate-200 relative">
+                     <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover">
+                     <div class="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">JPG • 2MB</div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between border-t border-slate-50 pt-3 mt-2">
+                <div class="flex gap-4">
+                    <button class="flex items-center gap-1 text-red-500 hover:text-red-600 transition-colors">
+                        <i data-lucide="heart" class="w-5 h-5 fill-current"></i>
+                        <span class="text-xs font-bold">84</span>
+                    </button>
+                    <button class="flex items-center gap-1 text-slate-400 hover:text-blue-500 transition-colors">
+                        <i data-lucide="message-circle" class="w-5 h-5"></i>
+                        <span class="text-xs font-bold">21</span>
+                    </button>
+                </div>
+                <button class="text-slate-400 hover:text-emerald-600"><i data-lucide="share-2" class="w-5 h-5"></i></button>
+            </div>
+        </article>
+
+        <!-- POST 3: LOGRO DESBLOQUEADO -->
+        <article class="post-card bg-gradient-to-br from-indigo-50 to-white p-5 rounded-3xl shadow-soft border border-indigo-100">
+             <div class="flex items-center gap-3 mb-2">
+                 <div class="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center text-white shadow-sm">
+                     <i data-lucide="trophy" class="w-4 h-4 fill-current"></i>
+                 </div>
+                 <p class="text-xs font-bold text-indigo-900">¡Nuevo Logro Desbloqueado!</p>
+             </div>
+             <div class="flex gap-4 items-center">
+                 <div class="relative">
+                     <img src="https://i.pravatar.cc/100?img=12" class="w-12 h-12 rounded-full border-2 border-white">
+                 </div>
+                 <div>
+                     <p class="text-sm text-slate-700"><span class="font-bold">Pedro Export</span> ha completado el módulo <span class="font-bold text-indigo-600">"Valoración Avanzada"</span> con 100% de precisión. 🎓</p>
+                 </div>
+             </div>
+             <div class="mt-3 flex gap-2">
+                 <button class="flex-1 bg-white text-slate-600 py-1.5 rounded-lg text-xs font-bold shadow-sm border border-slate-100 hover:bg-slate-50">
+                     👏 Felicitar
+                 </button>
+             </div>
+        </article>
+
+    </main>
+
+    <!-- ================= BOTÓN FLOTANTE DE ACCIÓN (FAB) ================= -->
+    <div class="fixed bottom-24 right-4 z-40">
+        <button class="w-14 h-14 bg-gradient-to-tr from-emerald-500 to-teal-600 rounded-full shadow-lg shadow-emerald-500/40 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all">
+            <i data-lucide="plus" class="w-8 h-8"></i>
+        </button>
+    </div>
+
+    <!-- ================= DOCK DE NAVEGACIÓN (Simulado para contexto) ================= -->
+    <!-- Nota: En un entorno real, este sería el mismo componente que index.html -->
+    <div class="fixed bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none">
+        <nav class="bg-white/95 backdrop-blur-2xl border border-white/50 rounded-full px-2 py-2 shadow-[0_20px_40px_-5px_rgba(0,0,0,0.15)] pointer-events-auto flex items-center gap-1 md:gap-4 max-w-[95%]">
+            <button onclick="window.location.href='index.html'" class="w-12 h-12 rounded-full flex flex-col items-center justify-center text-slate-400 hover:bg-slate-50">
+                <i data-lucide="home" class="w-5 h-5"></i>
+            </button>
+            <div class="w-px h-6 bg-slate-200 mx-1"></div>
+            <!-- Botón Activo ADUPOST -->
+            <button class="w-12 h-12 rounded-full flex flex-col items-center justify-center text-emerald-600 bg-emerald-50">
+                <i data-lucide="message-square" class="w-5 h-5"></i>
+            </button>
+        </nav>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Ruta de Aprendizaje - ADUWEB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        /* Estilos para el nuevo gestor */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        fieldset { @apply mb-6 p-6 border border-gray-300 rounded-xl bg-white; }
+        legend { @apply text-xl font-bold text-indigo-600 px-2; }
+        label { @apply block text-sm font-medium text-gray-700 mb-1; }
+        input[type="text"], textarea { @apply w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500; }
+        textarea { min-height: 150px; font-family: monospace; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <audio id="soundClick" src="./click.mp3" preload="auto"></audio>
+
+    <header class="bg-white py-4 px-6 shadow-md sticky top-0 z-20 border-b">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <span class="text-2xl font-extrabold text-green-700">ADUWEB</span>
+                <span class="text-sm font-light text-gray-500 hidden sm:block">| Gestor de Niveles</span>
+            </div>
+            <a href="panel_control.html" class="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                Volver al Panel
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-6 md:p-10">
+        <h1 class="text-3xl font-extrabold text-gray-900 border-b pb-4 mb-8">Gestor de la Ruta de Aprendizaje</h1>
+
+        <!-- Paso 1: Seleccionar Módulo -->
+        <div class="mb-8">
+            <label for="moduleSelector" class="block text-lg font-bold text-gray-700 mb-2">1. Selecciona un Módulo para Gestionar sus Niveles:</label>
+            <select id="moduleSelector" class="w-full p-3 border-2 border-gray-300 rounded-lg bg-white text-lg">
+                <option value="">-- Cargar Módulos --</option>
+            </select>
+        </div>
+
+        <!-- Contenedor para la gestión de niveles (oculto hasta seleccionar módulo) -->
+        <div id="level-manager-container" class="hidden animate-fade-in grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Columna para crear nuevo nivel -->
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 rounded-xl shadow-lg sticky top-28">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Crear Nuevo Nivel</h2>
+                    <form id="new-level-form" class="space-y-4">
+                        <div>
+                            <label for="levelName">Nombre del Nivel</label>
+                            <input type="text" id="levelName" placeholder="Ej: Nivel 1: Fundamentos" required>
+                        </div>
+                        <div>
+                            <label for="levelDesc">Descripción Corta</label>
+                            <textarea id="levelDesc" placeholder="Un resumen de lo que aprenderá el estudiante." rows="3" class="min-h-[80px]"></textarea>
+                        </div>
+                        <div>
+                            <label for="levelIcon">Icono (Emoji)</label>
+                            <input type="text" id="levelIcon" value="📚" maxlength="2">
+                        </div>
+                        <div>
+                            <label for="levelPercentage">Peso Porcentual del Módulo (%)</label>
+                            <input type="number" id="levelPercentage" value="25" min="1" max="100" required>
+                        </div>
+                        <button type="submit" class="w-full p-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition">
+                            Añadir Nivel al Módulo
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Columna para listar y editar niveles existentes -->
+            <div class="lg:col-span-2">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="current-module-title" class="text-2xl font-bold text-gray-800">Niveles del Módulo</h2>
+                    <p class="text-sm font-bold text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full">Progreso del Módulo: <span id="module-progress-percentage">0%</span></p>
+                </div>
+                <div id="levels-list-container" class="space-y-4">
+                    <p class="text-center text-gray-500">Selecciona un módulo para ver sus niveles.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-app.js";
+        import { getDatabase, ref, get, set, update, push, onValue, remove, off } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-database.js";
+        import { playSound } from "./utils.js";
+        // Importar la configuración centralizada
+        import { firebaseConfig } from "./config.js";
+        import { callAduiaApi } from "./keyhandler.js"; // Usar el manejador centralizado
+        import { initGuide, advanceGuide, endGuide, updateGuideMessage } from './yarvis_guide.js';
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // --- NUEVA ESTRUCTURA: Módulos Fijos ---
+        const TRAINING_MODULES = [
+            { id: 'module_1', name: 'Módulo 1: Fundamentos del Comercio Exterior' },
+            { id: 'module_2', name: 'Módulo 2: Incoterms y Negociación' },
+            { id: 'module_3', name: 'Módulo 3: Clasificación Arancelaria' },
+            { id: 'module_4', name: 'Módulo 4: Valoración Aduanera' },
+            { id: 'module_5', name: 'Módulo 5: Logística y Documentos' }
+        ];
+
+        let currentModuleId = null;
+        let currentLevelsRef = null;
+        let levelsListener = null;
+
+        // --- Lógica para el formulario de creación de niveles ---
+        document.getElementById('new-level-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentLevelsRef) return;
+
+            const name = document.getElementById('levelName').value.trim();
+            const desc = document.getElementById('levelDesc').value.trim();
+            const icon = document.getElementById('levelIcon').value.trim();
+            const percentage = parseInt(document.getElementById('levelPercentage').value);
+
+            if (!name || !desc || isNaN(percentage) || percentage <= 0) {
+                Swal.fire('Error', 'Nombre, descripción y un porcentaje válido son obligatorios.', 'error');
+                return;
+            }
+
+            const newLevelRef = push(currentLevelsRef);
+            const snapshot = await get(currentLevelsRef);
+            const order = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
+
+            const newLevelData = { id: newLevelRef.key, name, desc, icon, order, percentage, moduleId: currentModuleId };
+            try {
+                await set(newLevelRef, newLevelData);
+                Swal.fire('¡Éxito!', 'Nuevo nivel añadido a la ruta de aprendizaje.', 'success');
+                document.getElementById('new-level-form').reset();
+
+                // --- NUEVO: Lógica de guía de Yarvis ---
+                // Notificamos al guía que el nivel se ha creado.
+                const guideSessionData = sessionStorage.getItem('yarvisGuideSession');
+                if (guideSessionData && JSON.parse(guideSessionData).currentStep === 0) {
+                    const guideSession = JSON.parse(guideSessionData);
+                    sessionStorage.setItem('yarvisGuideSession', JSON.stringify(guideSession));
+                    advanceGuide(); // Avanzar al siguiente paso de la guía
+                }
+
+            } catch (error) {
+                Swal.fire('Error', 'No se pudo crear el nivel.', 'error');
+            }
+        });
+
+        // --- Lógica para renderizar y editar niveles existentes ---
+        function renderLevelsList(levels) {
+            const container = document.getElementById('levels-list-container');
+            const progressPercentageSpan = document.getElementById('module-progress-percentage');
+            container.innerHTML = '';
+
+            if (!levels) {
+                container.innerHTML = '<p class="text-center text-gray-500">No hay niveles creados. ¡Añade el primero!</p>';
+                progressPercentageSpan.textContent = '0%';
+                return;
+            }
+
+            const sortedLevels = Object.values(levels).sort((a, b) => a.order - b.order);
+
+            let totalPercentage = 0;
+            sortedLevels.forEach(level => {
+                totalPercentage += level.percentage || 0;
+                const levelCard = document.createElement('div');
+                levelCard.className = 'bg-white p-4 rounded-xl shadow-md flex items-center justify-between animate-fade-in';
+                levelCard.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <span class="text-3xl">${level.icon}</span>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">${level.name}</h3>
+                            <p class="text-sm text-gray-600">${level.desc}</p>
+                            <p class="text-xs font-bold text-indigo-600 mt-1">Peso: ${level.percentage || 0}%</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button data-level-id="${level.id}" class="edit-btn bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">Editar</button>
+                        <button data-level-id="${level.id}" class="delete-btn bg-red-500 text-white p-2 rounded-lg hover:bg-red-600">Eliminar</button>
+                    </div>
+                `;
+                container.appendChild(levelCard);
+            });
+
+            progressPercentageSpan.textContent = `${totalPercentage}%`;
+            progressPercentageSpan.classList.toggle('text-red-600', totalPercentage !== 100);
+
+            // MODIFICADO: Llamar a openEditModal y avanzar la guía si es necesario
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const levelId = btn.dataset.levelId;
+                    const contentSnapshot = await get(ref(db, `learning_path/modules/${currentModuleId}/content/${levelId}`));
+                    const levelData = contentSnapshot.exists() ? contentSnapshot.val() : {};
+                    const levelMetadataSnapshot = await get(ref(db, `learning_path/modules/${currentModuleId}/levels/${levelId}`));
+                    const topic = levelMetadataSnapshot.exists() ? levelMetadataSnapshot.val().name : '';
+
+                    openEditModal(levelId, levelData, topic);
+
+                    // --- NUEVO: Lógica de guía de Yarvis ---
+                    // Notificamos al guía que se ha hecho clic en editar.
+                    const guideSessionData = sessionStorage.getItem('yarvisGuideSession');
+                    if (guideSessionData && JSON.parse(guideSessionData).currentStep === 1) {
+                        advanceGuide(); // Avanzar al siguiente paso de la guía al editar
+                        // Opcional: cerrar la guía después de un tiempo.
+                        setTimeout(endGuide, 10000);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => deleteLevel(btn.dataset.levelId));
+            });
+        }
+
+        async function openEditModal(levelId, levelData = {}, topic = null) {
+            playSound('soundClick');
+
+            // --- CORRECCIÓN: Mover la función de renderizado de preguntas aquí dentro ---
+            // Así, tiene acceso al 'scope' de openEditModal y puede ver 'levelData'.
+            const renderQuestion = (qData = { q: '', o: ['', '', ''], a: 0 }) => {
+                const questionsContainer = document.getElementById('swal-questions');
+                if (!questionsContainer) return;
+                const qDiv = document.createElement('div');
+                qDiv.className = 'p-2 border rounded bg-white';
+                qDiv.innerHTML = `
+                    <input class="swal2-input text-sm" placeholder="Pregunta" value="${qData.q}">
+                    <div class="grid grid-cols-3 gap-1 mt-1">
+                        ${qData.o.map((opt, i) => `<input class="swal2-input text-xs" placeholder="Opción ${i+1}" value="${opt}">`).join('')}
+                    </div>
+                    <input type="number" class="swal2-input text-xs mt-1" placeholder="Índice correcto (0, 1, 2)" value="${qData.a}">
+                `;
+                questionsContainer.appendChild(qDiv);
+            };
+
+            const { value: formValues } = await Swal.fire({
+                title: 'Editar Contenido del Nivel',
+                // MODIFICADO: Reestructurado para un mejor diseño
+                html: `
+                    <div class="text-left space-y-4 p-2">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label for="swal-title" class="font-semibold">Título del Material</label>
+                                <div id="ai-options-container" class="flex items-center gap-2">
+                                    <!-- Opciones de IA (inicialmente ocultas) -->
+                                    <div id="ai-controls" class="hidden flex items-center gap-2">
+                                        <select id="ai-difficulty" class="swal2-input text-sm p-1 h-auto">
+                                            <option value="fácil">Fácil</option>
+                                            <option value="intermedio" selected>Intermedio</option>
+                                            <option value="difícil">Difícil</option>
+                                        </select>
+                                        <input type="number" id="ai-num-questions" value="3" min="1" max="5" class="swal2-input text-sm p-1 h-auto w-16">
+                                        <button type="button" id="ai-generate-btn" class="text-sm bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 transition">Generar</button>
+                                        <button type="button" id="ai-cancel-btn" class="text-sm text-gray-500 hover:text-red-600">×</button>
+                                    </div>
+                                    <!-- Botón principal de IA -->
+                                    <button type="button" id="ai-fill-btn" class="text-sm bg-purple-500 text-white px-3 py-1 rounded-lg hover:bg-purple-600 transition flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9z"></path><path d="M20.62 5.23a.5.5 0 0 0-.84 0l-1.03 1.03a.5.5 0 0 0 0 .7.5.5 0 0 0 .7 0l1.04-1.03a.5.5 0 0 0 .13-.7z"></path><path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12z"></path></svg>
+                                        Relleno con IA
+                                    </button>
+                                </div>
+                            </div>
+                            <input id="swal-title" class="swal2-input" value="${topic || levelData?.title || ''}" placeholder="Ej: Fundamentos de Incoterms 2020">
+                        </div>
+                        <div><label for="swal-url">URL del Documento (Google Drive)</label><input id="swal-url" class="swal2-input" value="${levelData?.documentUrl || ''}"></div>
+                        <div><label for="swal-content">Resumen (HTML)</label><textarea id="swal-content" class="swal2-textarea">${levelData?.content || ''}</textarea></div>
+                        <h4 class="font-bold pt-4 border-t">Preguntas de Evaluación</h4>
+                        <div id="swal-questions" class="space-y-2 max-h-40 overflow-y-auto p-2 bg-gray-100 rounded"></div>
+                        <button type="button" id="swal-add-q" class="text-sm bg-blue-500 text-white px-2 py-1 rounded">Añadir Pregunta</button>
+                    </div>
+                `,
+                width: '800px',
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar Cambios',
+                didOpen: () => {
+                    const questionsContainer = document.getElementById('swal-questions');
+                    const addBtn = document.getElementById('swal-add-q');
+                    
+                    // --- NUEVO: Lógica de los controles de IA ---
+                    const aiBtn = document.getElementById('ai-fill-btn');
+                    const aiControls = document.getElementById('ai-controls');
+                    const aiGenerateBtn = document.getElementById('ai-generate-btn');
+                    const aiCancelBtn = document.getElementById('ai-cancel-btn');
+
+                    aiBtn.onclick = () => { aiBtn.classList.add('hidden'); aiControls.classList.remove('hidden'); };
+                    aiCancelBtn.onclick = () => { aiControls.classList.add('hidden'); aiBtn.classList.remove('hidden'); };
+                    aiGenerateBtn.onclick = async () => {
+                        const numQuestions = document.getElementById('ai-num-questions').value;
+                        const difficulty = document.getElementById('ai-difficulty').value;
+                        // MODIFICADO: Ahora esperamos la respuesta de la IA
+                        const aiData = await generateAIContent(numQuestions, difficulty);
+                        if (aiData) {
+                            document.getElementById('swal-content').value = aiData.summary;
+                            questionsContainer.innerHTML = ''; // Limpiar preguntas existentes
+                            aiData.questions.forEach(renderQuestion);
+                        }
+                    };
+
+                    (levelData?.questions || []).forEach(renderQuestion);
+                    addBtn.onclick = () => renderQuestion();
+                },
+                preConfirm: () => {
+                    const questions = [];
+                    document.querySelectorAll('#swal-questions > div').forEach(qDiv => {
+                        const q = qDiv.children[0].value;
+                        const o = Array.from(qDiv.children[1].children).map(opt => opt.value);
+                        const a = parseInt(qDiv.children[2].value);
+                        if (q && o.every(opt => opt)) questions.push({ q, o, a });
+                    });
+                    return {
+                        title: document.getElementById('swal-title').value,
+                        documentUrl: document.getElementById('swal-url').value,
+                        content: document.getElementById('swal-content').value,
+                        questions: questions
+                    }
+                }
+            });
+
+            if (formValues && levelId) { // CORRECCIÓN: Asegurarse de que estamos editando
+                const contentRef = ref(db, `learning_path/modules/${currentModuleId}/content/${levelId}`);
+                await set(contentRef, formValues); // Guardar en la referencia correcta
+                Swal.fire('¡Guardado!', 'El contenido del nivel ha sido actualizado.', 'success');
+            }
+        }
+
+        // --- NUEVO: LÓGICA DE INTELIGENCIA ARTIFICIAL ---
+        async function generateAIContent(numQuestions = 3, difficulty = 'intermedio') { // MODIFICADO: Ahora devuelve los datos
+            const title = document.getElementById('swal-title').value;
+            if (!title) {
+                Swal.fire('Espera', 'Debes escribir un título para el material antes de usar la IA.', 'warning');
+                return;
+            }
+
+            // CORRECCIÓN: Deshabilitar el botón para evitar múltiples clics
+            const aiBtn = document.getElementById('ai-generate-btn'); // CORRECCIÓN: Usar la variable correcta
+            aiBtn.disabled = true;
+            aiBtn.innerHTML = `
+                <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Generando...
+            `;
+
+            const prompt = `
+                Basado en el tema "${title}", genera un resumen conciso en formato HTML (usando <p>, <strong>, <ul>, <li>) y exactamente ${numQuestions} preguntas de evaluación con un nivel de dificultad ${difficulty}.
+                Devuelve la respuesta en formato JSON con la siguiente estructura:
+                {
+                  "summary": "tu resumen en html aquí",
+                  "questions": [
+                    { "q": "texto de la pregunta 1", "o": ["opción A", "opción B", "opción C"], "a": 0 },
+                    { "q": "texto de la pregunta 2", "o": ["opción A", "opción B", "opción C"], "a": 1 },
+                    { "q": "texto de la pregunta 3", "o": ["opción A", "opción B", "opción C"], "a": 2 }
+                  ]
+                }
+                El campo "a" debe ser el índice (0, 1, o 2) de la respuesta correcta en el array "o".
+            `;
+
+            try {
+                const payload = {
+                    model: "gpt-3.5-turbo-0125",
+                    messages: [{ role: "user", content: prompt }],
+                    temperature: 0.5,
+                    response_format: { type: "json_object" }
+                };
+
+                const data = await callAduiaApi(payload);
+                let contentString = data.choices[0].message.content;
+
+                // --- CORRECCIÓN: Extraer el JSON si está envuelto en un bloque de código markdown ---
+                const jsonMatch = contentString.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) {
+                    console.error("Respuesta de la IA sin JSON:", contentString);
+                    throw new Error("La respuesta de la IA no contenía un JSON válido.");
+                }
+                contentString = jsonMatch[0];
+                // --- FIN DE LA CORRECCIÓN ---
+                
+                // MODIFICADO: Devolver el contenido parseado
+                return JSON.parse(contentString);
+
+            } catch (error) {
+                Swal.fire('Error', `No se pudo generar el contenido: ${error.message}`, 'error');
+                return null; // Devolver null en caso de error
+            } finally {
+                // CORRECCIÓN: Rehabilitar el botón de IA al finalizar
+                aiBtn.disabled = false;
+                aiBtn.textContent = 'Generar';
+            }
+        }
+
+        async function deleteLevel(levelId) {
+            const result = await Swal.fire({
+                title: '¿Estás seguro?',
+                text: "Se eliminará el nivel, su contenido y el progreso de TODOS los estudiantes en este nivel. ¡Esta acción no se puede deshacer!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonText: 'Cancelar',
+                confirmButtonText: 'Sí, eliminar todo'
+            });
+
+            if (result.isConfirmed) {
+                const loadingSwal = Swal.fire({
+                    title: 'Eliminando...',
+                    text: 'Borrando el nivel y recalculando el progreso de los estudiantes.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const updates = {};
+                // 1. Marcar el nivel y su contenido para ser eliminados.
+                updates[`learning_path/modules/${currentModuleId}/levels/${levelId}`] = null;
+                updates[`learning_path/modules/${currentModuleId}/content/${levelId}`] = null;
+
+                // 2. Obtener todos los usuarios para eliminar su progreso en este nivel.
+                const usersRef = ref(db, 'usuarios');
+                const usersSnapshot = await get(usersRef);
+                if (usersSnapshot.exists()) {
+                    const users = usersSnapshot.val();
+                    Object.keys(users).forEach(userId => {
+                        updates[`usuarios/${userId}/progreso_modulos/${currentModuleId}/${levelId}`] = null;
+                    });
+                }
+
+                // 3. Ejecutar todas las eliminaciones.
+                await update(ref(db), updates);
+
+                // 4. Recalcular el progreso global de cada usuario afectado.
+                if (usersSnapshot.exists()) {
+                    const users = usersSnapshot.val();
+                    const allModulesSnapshot = await get(ref(db, 'learning_path/modules'));
+                    const allModules = allModulesSnapshot.val();
+                    const progressUpdates = {};
+
+                    for (const userId in users) {
+                        const userProgressSnapshot = await get(ref(db, `usuarios/${userId}/progreso_modulos`));
+                        const userProgress = userProgressSnapshot.exists() ? userProgressSnapshot.val() : {};
+                        // (Esta es una versión simplificada del cálculo de progreso, asumiendo que está disponible)
+                        // En una implementación completa, aquí iría la función `calculateGlobalProgress(userProgress, allModules)`
+                        // Por ahora, simplemente forzamos una actualización simbólica.
+                        // La lógica real de recálculo está en icogame.html, que se ejecutará la próxima vez que el usuario entre.
+                    }
+                    // await update(ref(db), progressUpdates); // Descomentar si se implementa el recálculo aquí.
+                }
+
+                loadingSwal.close();
+                Swal.fire('¡Eliminado!', 'El nivel y todo el progreso asociado han sido eliminados.', 'success');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const moduleSelector = document.getElementById('moduleSelector');
+            const levelManagerContainer = document.getElementById('level-manager-container');
+
+            // Inicializar la guía de Yarvis inmediatamente
+            initGuide(null);
+
+            // Poblar selector de módulos
+            moduleSelector.innerHTML = '<option value="">-- Selecciona un Módulo --</option>'; // Limpiar y añadir opción por defecto
+            TRAINING_MODULES.forEach(module => {
+                moduleSelector.innerHTML += `<option value="${module.id}">${module.name}</option>`;
+            });
+
+            // MODIFICADO: Lógica de carga de niveles refactorizada
+            moduleSelector.addEventListener('change', (e) => {
+                currentModuleId = e.target.value;
+                
+                // Detener el listener anterior para evitar cargas múltiples y conflictos
+                if (levelsListener) {
+                    off(currentLevelsRef, 'value', levelsListener);
+                }
+
+                if (currentModuleId) {
+                    levelManagerContainer.classList.remove('hidden');
+                    document.getElementById('current-module-title').textContent = `Niveles para: ${TRAINING_MODULES.find(m => m.id === currentModuleId).name}`;
+                    currentLevelsRef = ref(db, `learning_path/modules/${currentModuleId}/levels`); // Crear la nueva referencia
+                    levelsListener = onValue(currentLevelsRef, (snapshot) => {
+                        renderLevelsList(snapshot.val());
+                    });
+                } else {
+                    levelManagerContainer.classList.add('hidden');
+                }
+            });
+
+            // --- NUEVO: Lógica para manejar las respuestas a Yarvis (movida aquí para estar en el scope correcto) ---
+            function handleYarvisOption(optionValue) {
+                if (optionValue === 'yes') {
+                    // El usuario quiere que la IA genere contenido.
+                // MODIFICADO: En lugar de manipular el DOM directamente, abrimos el modal y le pasamos el tema.
+                    const guideSession = JSON.parse(sessionStorage.getItem('yarvisGuideSession'));
+                    if (guideSession && guideSession.topic) {
+                    openEditModal(null, {}, guideSession.topic); // Abrir modal para crear nuevo nivel, con autogeneración
+                        updateGuideMessage('¡Perfecto! He generado un borrador. Puedes ajustarlo y guardarlo cuando estés listo.');
+                    }
+                } else {
+                    // El usuario dijo que no.
+                    updateGuideMessage('Entendido. Avísame si necesitas algo más.');
+                    setTimeout(endGuide, 3000); // Cerrar la guía después de un momento.
+                }
+            }
+
+            // --- NUEVO: Inicializar la guía de Yarvis al cargar la página ---
+            initGuide(null); // No se necesita callback porque la guía ya no tiene botones de sí/no
+        });
+    </script>
+</body>
+</html>

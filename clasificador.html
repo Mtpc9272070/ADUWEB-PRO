@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clasificador Arancelario | ADUWEB</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        emerald: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 900: '#064e3b' },
+                        slate: { 850: '#1e293b' },
+                        teal: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 900: '#134e4a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-20 min-h-screen">
+
+    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-lg">
+        <div class="max-w-md mx-auto px-4 py-4 flex items-center gap-4">
+            <button onclick="window.history.back()" class="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            </button>
+            <div>
+                <h1 class="font-black text-lg tracking-tight flex items-center gap-2">
+                    <i data-lucide="search-code" class="w-5 h-5 text-teal-400"></i>
+                    Clasificador Pro
+                </h1>
+                <p class="text-xs text-slate-400">Motor de búsqueda inteligente</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 py-6 space-y-6">
+
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Descripción del Producto</label>
+            <div class="relative">
+                <input type="text" id="searchInput" 
+                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 block p-4 pl-12 transition-all font-medium" 
+                    placeholder="Ej: Zapatos deportivos, Laptops..." autocomplete="off">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                    <i data-lucide="search" class="w-5 h-5 text-slate-400"></i>
+                </div>
+                <button onclick="searchProduct()" 
+                    class="absolute inset-y-1 right-1 bg-teal-600 hover:bg-teal-700 text-white px-4 rounded-lg text-xs font-bold transition-colors">
+                    Clasificar
+                </button>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-2 text-center">
+                <i data-lucide="info" class="w-3 h-3 inline mr-1"></i>
+                La IA analizará la descripción técnica.
+            </p>
+        </div>
+
+        <div id="loadingState" class="hidden space-y-4">
+            <div class="animate-pulse flex space-x-4">
+                <div class="flex-1 space-y-4 py-1">
+                    <div class="h-4 bg-slate-200 rounded w-3/4"></div>
+                    <div class="space-y-2">
+                        <div class="h-4 bg-slate-200 rounded"></div>
+                        <div class="h-4 bg-slate-200 rounded w-5/6"></div>
+                    </div>
+                </div>
+            </div>
+            <p class="text-center text-xs text-teal-600 font-bold animate-pulse">Consultando Arancel Nacional...</p>
+        </div>
+
+        <div id="resultsArea" class="hidden space-y-6 animate-fade-in">
+            
+            <div class="bg-white rounded-3xl shadow-lg border border-teal-100 overflow-hidden relative">
+                <div class="absolute top-0 right-0 p-4 opacity-10">
+                    <i data-lucide="hash" class="w-24 h-24 text-teal-600"></i>
+                </div>
+                
+                <div class="p-6 relative z-10">
+                    <span class="bg-teal-50 text-teal-700 text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wide border border-teal-100">Subpartida Sugerida</span>
+                    <h2 class="text-4xl font-black text-slate-800 mt-2 tracking-tighter" id="resCode">0000.00.00.00</h2>
+                    <p class="text-sm text-slate-500 font-medium mt-1 leading-relaxed" id="resDesc">Descripción arancelaria técnica aquí.</p>
+                    
+                    <div class="mt-6 flex gap-3">
+                        <div class="flex-1 bg-slate-50 rounded-xl p-3 border border-slate-100 text-center">
+                            <span class="block text-[10px] text-slate-400 font-bold uppercase">Arancel</span>
+                            <span class="block text-xl font-black text-slate-800" id="resDuty">0%</span>
+                        </div>
+                        <div class="flex-1 bg-slate-50 rounded-xl p-3 border border-slate-100 text-center">
+                            <span class="block text-[10px] text-slate-400 font-bold uppercase">IVA</span>
+                            <span class="block text-xl font-black text-slate-800" id="resVat">19%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-slate-900 px-6 py-3 flex justify-between items-center">
+                    <span class="text-xs text-white font-medium flex items-center gap-2">
+                        <i data-lucide="brain-circuit" class="w-4 h-4 text-teal-400"></i>
+                        Confianza IA
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <div class="w-20 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-teal-400 w-[92%]"></div>
+                        </div>
+                        <span class="text-xs font-bold text-teal-400">92%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center mb-2">
+                        <i data-lucide="file-check" class="w-4 h-4 text-purple-600"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-700 text-xs">Vistos Buenos</h3>
+                    <ul class="mt-2 space-y-1" id="resReqs">
+                        </ul>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center mb-2">
+                        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-700 text-xs">Restricciones</h3>
+                    <p class="text-[10px] text-slate-500 mt-2 leading-tight" id="resRestr">Sin restricciones especiales.</p>
+                </div>
+            </div>
+
+            <button onclick="window.location.reload()" class="w-full py-4 text-center text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors">
+                Nueva Búsqueda
+            </button>
+
+        </div>
+        
+        <div id="emptyState" class="flex flex-col items-center justify-center py-10 opacity-60">
+            <i data-lucide="search" class="w-16 h-16 text-slate-200 mb-4"></i>
+            <p class="text-sm text-slate-400 text-center">Ingresa una descripción para comenzar <br> el análisis arancelario.</p>
+        </div>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // ----------------------------------------------------
+        // SIMULACIÓN DE API (MOCK DATA)
+        // ----------------------------------------------------
+        // En una app real, aquí harías fetch('https://api.aduana.gov/search?q=...')
+        const MOCK_DB = {
+            "zapatos": {
+                code: "6404.11.00.00",
+                desc: "Calzado de deporte; calzado de tenis, baloncesto, gimnasia, entrenamiento y similares.",
+                duty: "15%",
+                vat: "19%",
+                reqs: ["Etiquetado RTM", "Declaración de conformidad"],
+                restr: "No aplica prohibiciones."
+            },
+            "laptop": {
+                code: "8471.30.00.00",
+                desc: "Máquinas automáticas para tratamiento o procesamiento de datos, portátiles, de peso inferior a 10 kg.",
+                duty: "0%",
+                vat: "19% (Exento si < 50 UVT)",
+                reqs: ["Manual de usuario", "Certificado RETIE (Cargador)"],
+                restr: "Libre importación."
+            },
+            "cafe": {
+                code: "0901.21.10.00",
+                desc: "Café tostado, sin descafeinar, en grano.",
+                duty: "15%",
+                vat: "5%",
+                reqs: ["Visto bueno INVIMA", "Registro Fitosanitario ICA"],
+                restr: "Cuota de fomento cafetero aplica."
+            },
+            "camisa": {
+                code: "6205.20.00.00",
+                desc: "Camisas de algodón para hombres o niños.",
+                duty: "15%",
+                vat: "19%",
+                reqs: ["Etiquetado textil", "País de origen"],
+                restr: "Umbrales de precios aplicables."
+            }
+        };
+
+        function searchProduct() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const resultsArea = document.getElementById('resultsArea');
+            const loadingState = document.getElementById('loadingState');
+            const emptyState = document.getElementById('emptyState');
+
+            if (!query) return;
+
+            // 1. Mostrar Loading UI
+            emptyState.classList.add('hidden');
+            resultsArea.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+
+            // 2. Simular retardo de red (1.5 segundos)
+            setTimeout(() => {
+                loadingState.classList.add('hidden');
+                
+                // 3. Lógica de búsqueda simple (buscar coincidencias parciales)
+                let foundKey = Object.keys(MOCK_DB).find(key => query.includes(key));
+                
+                if (foundKey) {
+                    renderResults(MOCK_DB[foundKey]);
+                } else {
+                    // Resultado genérico o "No encontrado" simulado
+                    // Para que no se sienta roto, si no encuentra, mostramos un genérico "OTROS"
+                    renderResults({
+                        code: "9999.99.99.99",
+                        desc: "Producto no especificado en la base de datos local. Se requiere análisis técnico manual.",
+                        duty: "N/A",
+                        vat: "19%",
+                        reqs: ["Ficha Técnica requerida"],
+                        restr: "Verificar estatuto aduanero."
+                    });
+                }
+            }, 1500);
+        }
+
+        function renderResults(data) {
+            const resultsArea = document.getElementById('resultsArea');
+            
+            // Llenar datos
+            document.getElementById('resCode').innerText = data.code;
+            document.getElementById('resDesc').innerText = data.desc;
+            document.getElementById('resDuty').innerText = data.duty;
+            document.getElementById('resVat').innerText = data.vat;
+            document.getElementById('resRestr').innerText = data.restr;
+
+            // Llenar lista de requisitos
+            const reqsList = document.getElementById('resReqs');
+            reqsList.innerHTML = ""; // Limpiar
+            data.reqs.forEach(req => {
+                reqsList.innerHTML += `<li class="text-[10px] text-slate-500 flex items-center gap-1.5"><div class="w-1.5 h-1.5 rounded-full bg-teal-500"></div> ${req}</li>`;
+            });
+
+            // Mostrar
+            resultsArea.classList.remove('hidden');
+        }
+
+        // Permitir búsqueda con Enter
+        document.getElementById('searchInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                searchProduct();
+            }
+        });
+
+    </script>
+</body>
+</html>

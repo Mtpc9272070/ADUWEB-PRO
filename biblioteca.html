@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADUWEB | Biblioteca Digital</title>
+    
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- 3. Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <!-- Configuración Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        cyan: { 50: '#ecfeff', 100: '#cffafe', 500: '#06b6d4', 600: '#0891b2', 900: '#164e63' },
+                        slate: { 850: '#1e293b' }
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.4s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .doc-card { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .doc-card:active { transform: scale(0.98); }
+        .doc-card:hover { border-color: #06b6d4; box-shadow: 0 10px 30px -10px rgba(6, 182, 212, 0.15); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-20 selection:bg-cyan-100 selection:text-cyan-800 min-h-screen">
+
+    <!-- ================= HEADER FIJO ================= -->
+    <header class="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-b border-slate-200 z-40 transition-all">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <button onclick="window.location.href='index.html'" class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors">
+                <i data-lucide="arrow-left" class="w-6 h-6 text-slate-600"></i>
+            </button>
+            
+            <div class="flex flex-col items-center">
+                <h1 class="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                    <span class="bg-gradient-to-r from-cyan-600 to-blue-600 text-transparent bg-clip-text">ADUWEB</span>
+                    <span class="text-slate-400 font-medium text-xs border border-slate-200 rounded px-1.5 py-0.5">DOCS</span>
+                </h1>
+            </div>
+
+            <button class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-400">
+                <i data-lucide="bookmark" class="w-6 h-6"></i>
+            </button>
+        </div>
+        
+        <!-- Barra de Búsqueda Integrada -->
+        <div class="px-4 pb-3 max-w-4xl mx-auto">
+            <div class="relative group">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-cyan-500 transition-colors"></i>
+                <input type="text" id="search-input" placeholder="Buscar decreto, ley o formato..." class="w-full bg-slate-100 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-cyan-500/20 focus:bg-white transition-all placeholder:text-slate-400 font-medium">
+            </div>
+        </div>
+        
+        <!-- Filtros Rápidos -->
+        <div class="px-4 pb-0 overflow-x-auto scrollbar-hide border-t border-slate-100">
+            <div class="flex gap-2 min-w-max mx-auto max-w-4xl py-2">
+                <button onclick="filterDocs('all')" class="filter-btn active px-4 py-1.5 bg-slate-800 text-white rounded-full text-xs font-bold shadow-md transition-all">
+                    Todo
+                </button>
+                <button onclick="filterDocs('ley')" class="filter-btn px-4 py-1.5 bg-white text-slate-500 border border-slate-200 rounded-full text-xs font-bold hover:border-cyan-400 hover:text-cyan-600 transition-all">
+                    ⚖️ Leyes
+                </button>
+                <button onclick="filterDocs('decreto')" class="filter-btn px-4 py-1.5 bg-white text-slate-500 border border-slate-200 rounded-full text-xs font-bold hover:border-cyan-400 hover:text-cyan-600 transition-all">
+                    📜 Decretos
+                </button>
+                <button onclick="filterDocs('guia')" class="filter-btn px-4 py-1.5 bg-white text-slate-500 border border-slate-200 rounded-full text-xs font-bold hover:border-cyan-400 hover:text-cyan-600 transition-all">
+                    📘 Guías
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="h-44"></div>
+
+    <!-- ================= CONTENIDO PRINCIPAL ================= -->
+    <main class="max-w-4xl mx-auto px-4 space-y-4 animate-fade-in">
+
+        <!-- Banner Informativo -->
+        <div class="bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl p-4 text-white shadow-lg flex items-center justify-between mb-6">
+            <div>
+                <h2 class="font-bold text-sm">Normativa 2024 Actualizada</h2>
+                <p class="text-xs text-cyan-100 mt-0.5">Última sincronización: Hoy 08:00 AM</p>
+            </div>
+            <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md">
+                <i data-lucide="refresh-cw" class="w-4 h-4 text-white"></i>
+            </div>
+        </div>
+
+        <!-- Lista de Documentos -->
+        <div id="doc-list" class="space-y-3 pb-6">
+            <!-- Se llena dinámicamente -->
+            <div class="text-center py-10">
+                <div class="animate-spin w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+                <p class="text-xs text-slate-400">Cargando biblioteca...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- LOGIC SCRIPT -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+        import { getFirestore, collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+        // Inicializar Iconos
+        lucide.createIcons();
+
+        // Configuración Firebase (Usamos la configuración inyectada por el entorno)
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        let allDocs = [];
+
+        // 1. Cargar Documentos (Simulados si no hay en DB, o reales desde Firestore)
+        async function loadDocuments() {
+            const list = document.getElementById('doc-list');
+            
+            try {
+                // Intentar cargar de Firestore (Colección 'documents')
+                // Nota: Si no existe, usamos datos demo para que se vea bien el diseño
+                const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'documents'));
+                const snapshot = await getDocs(q);
+                
+                if (!snapshot.empty) {
+                    allDocs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } else {
+                    // Datos Demo para Visualización
+                    allDocs = [
+                        { id: '1', title: 'Estatuto Aduanero (Decreto 1165)', type: 'decreto', format: 'pdf', date: '2024-01-15', size: '2.4 MB' },
+                        { id: '2', title: 'Guía de Importación Ordinaria', type: 'guia', format: 'pdf', date: '2023-11-20', size: '1.1 MB' },
+                        { id: '3', title: 'Ley Marco de Aduanas', type: 'ley', format: 'pdf', date: '2023-10-05', size: '850 KB' },
+                        { id: '4', title: 'Formato Declaración Andina', type: 'formato', format: 'doc', date: '2024-02-01', size: '120 KB' },
+                        { id: '5', title: 'Circular 003 - Valoración', type: 'decreto', format: 'pdf', date: '2024-02-10', size: '500 KB' },
+                    ];
+                }
+                
+                renderDocs(allDocs);
+
+            } catch (e) {
+                console.error("Error cargando docs:", e);
+                list.innerHTML = `<p class="text-center text-red-500 text-sm">Error al cargar. Intenta recargar.</p>`;
+            }
+        }
+
+        // 2. Renderizar Documentos
+        window.renderDocs = (docs) => {
+            const list = document.getElementById('doc-list');
+            list.innerHTML = '';
+
+            if (docs.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-10 opacity-50">
+                        <i data-lucide="file-x" class="w-12 h-12 mx-auto mb-2 text-slate-300"></i>
+                        <p class="text-sm text-slate-500">No se encontraron documentos.</p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            docs.forEach((doc, index) => {
+                const iconColor = doc.format === 'pdf' ? 'text-red-500 bg-red-50' : 'text-blue-500 bg-blue-50';
+                const iconType = doc.format === 'pdf' ? 'file-text' : 'file-type-2'; // Icono genérico si no es PDF
+                
+                const html = `
+                <div class="doc-card bg-white p-4 rounded-2xl shadow-soft border border-slate-100 flex items-center gap-4 cursor-pointer hover:bg-slate-50 animate-slide-up" style="animation-delay: ${index * 0.05}s" onclick="openDoc('${doc.title}')">
+                    <div class="w-12 h-12 rounded-xl ${iconColor} flex items-center justify-center shrink-0">
+                        <i data-lucide="${iconType}" class="w-6 h-6"></i>
+                    </div>
+                    
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">${doc.type}</span>
+                            <span class="text-[10px] font-bold text-slate-300">• ${doc.size}</span>
+                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm truncate">${doc.title}</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Actualizado: ${doc.date}</p>
+                    </div>
+
+                    <button class="w-8 h-8 rounded-full border border-slate-100 flex items-center justify-center text-slate-400 hover:text-cyan-600 hover:border-cyan-200 transition-colors">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                `;
+                list.insertAdjacentHTML('beforeend', html);
+            });
+            lucide.createIcons();
+        };
+
+        // 3. Filtros
+        window.filterDocs = (type) => {
+            // UI Botones
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                const isSelected = (type === 'all' && btn.innerText.includes('Todo')) || 
+                                   (btn.innerText.toLowerCase().includes(type));
+                
+                if (isSelected) {
+                    btn.className = "filter-btn active px-4 py-1.5 bg-slate-800 text-white rounded-full text-xs font-bold shadow-md transition-all";
+                } else {
+                    btn.className = "filter-btn px-4 py-1.5 bg-white text-slate-500 border border-slate-200 rounded-full text-xs font-bold hover:border-cyan-400 hover:text-cyan-600 transition-all";
+                }
+            });
+
+            // Lógica Filtro
+            const filtered = type === 'all' ? allDocs : allDocs.filter(d => d.type === type);
+            renderDocs(filtered);
+        };
+
+        // 4. Búsqueda
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allDocs.filter(d => d.title.toLowerCase().includes(term));
+            renderDocs(filtered);
+        });
+
+        // 5. Acción (Simulada)
+        window.openDoc = (title) => {
+            // Aquí iría la lógica real de abrir visor o descargar
+            console.log("Abriendo:", title);
+        };
+
+        // Iniciar
+        loadDocuments();
+
+    </script>
+</body>
+</html>

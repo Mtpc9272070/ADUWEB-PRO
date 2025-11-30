@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AduTools | Caja de Herramientas Pro</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        emerald: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 900: '#064e3b' },
+                        slate: { 850: '#1e293b' },
+                        teal: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 900: '#134e4a' }
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 40px -10px rgba(0,0,0,0.05)',
+                        'card': '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.06)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .tool-card { transition: all 0.2s; }
+        .tool-card:hover { transform: translateY(-3px); }
+        .filter-button { transition: background-color 0.2s, color 0.2s; white-space: nowrap; }
+        .filter-button.active { 
+            background-color: #0d9488; /* teal-600 */
+            color: white; 
+            font-weight: 700; 
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-20 min-h-screen">
+
+    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-lg">
+        <div class="max-w-md mx-auto px-4 py-4 flex items-center justify-between gap-4">
+            <button onclick="window.history.back()" class="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            </button>
+            <div>
+                <h1 class="font-black text-xl tracking-tight flex items-center gap-2">
+                    <i data-lucide="wrench-screwdriver" class="w-6 h-6 text-teal-400"></i>
+                    AduTools
+                </h1>
+                <p class="text-xs text-slate-400">Caja de Herramientas Pro</p>
+            </div>
+            <!-- Racha de Usuario -->
+            <div id="streak-container" class="flex items-center gap-1 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100 shadow-sm">
+                <svg id="streak-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="flame" class="lucide lucide-flame w-4 h-4 text-orange-500 fill-orange-500 animate-pulse">
+                    <path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"></path>
+                </svg>
+                <span class="text-orange-700 font-bold text-sm" id="user-streak-display">0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 py-6 space-y-8">
+        
+        <div id="filter-bar" class="flex overflow-x-auto gap-3 pb-3 -mx-4 px-4 scrollbar-hide">
+            <button class="filter-button active bg-slate-200 text-slate-600 px-4 py-2 rounded-full text-xs font-medium" 
+                    onclick="filterByCategory('todos')">Todos</button>
+            <button class="filter-button bg-slate-200 text-slate-600 px-4 py-2 rounded-full text-xs font-medium" 
+                    onclick="filterByCategory('calculo')">Cálculo / Conversor</button>
+            <button class="filter-button bg-slate-200 text-slate-600 px-4 py-2 rounded-full text-xs font-medium" 
+                    onclick="filterByCategory('legal')">Legal / Documentos</button>
+            <button class="filter-button bg-slate-200 text-slate-600 px-4 py-2 rounded-full text-xs font-medium" 
+                    onclick="filterByCategory('logistica')">Logística / Contenedores</button>
+            <button class="filter-button bg-slate-200 text-slate-600 px-4 py-2 rounded-full text-xs font-medium" 
+                    onclick="filterByCategory('arancel')">Arancel / Tributos</button>
+        </div>
+
+        <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
+            <div class="relative">
+                <input type="text" id="toolSearch" 
+                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 block p-4 pl-12 transition-all font-medium" 
+                    placeholder="Buscar herramienta, código o tasa..." autocomplete="off"
+                    oninput="filterTools()">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                    <i data-lucide="search" class="w-5 h-5 text-slate-400"></i>
+                </div>
+            </div>
+        </div>
+        
+        <section id="tool-grid" class="grid grid-cols-2 gap-4">
+
+            <div class="tool-card bg-white p-4 rounded-2xl shadow-card border border-slate-100 cursor-pointer hover:border-teal-200 transition-colors group"
+                 onclick="window.location.href='clasificador.html'" data-category="arancel legal tributos">
+                <div class="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <i data-lucide="search-code" class="w-5 h-5"></i>
+                </div>
+                <h3 class="font-bold text-slate-800 text-sm">Clasificador Arancelario</h3>
+                <p class="text-[10px] text-slate-400 mt-1 leading-tight">Busca la subpartida y tributos.</p>
+            </div>
+
+            <div class="tool-card bg-white p-4 rounded-2xl shadow-card border border-slate-100 cursor-pointer hover:border-teal-200 transition-colors group"
+                 onclick="window.location.href='icoterm.html'" data-category="logistica contratos legal">
+                <div class="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <i data-lucide="ship-wheel" class="w-5 h-5"></i>
+                </div>
+                <h3 class="font-bold text-slate-800 text-sm">Analizador de Incoterms</h3>
+                <p class="text-[10px] text-slate-400 mt-1 leading-tight">Calcula costos, riesgos y obligaciones.</p>
+            </div>
+
+            <div class="tool-card bg-white p-4 rounded-2xl shadow-card border border-slate-100 cursor-pointer hover:border-teal-200 transition-colors group"
+                 onclick="window.location.href='tasa_cambio.html'" data-category="calculo conversor finanzas">
+                <div class="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <i data-lucide="dollar-sign" class="w-5 h-5"></i>
+                </div>
+                <h3 class="font-bold text-slate-800 text-sm">Tasa de Cambio (TRM)</h3>
+                <p class="text-[10px] text-slate-400 mt-1 leading-tight">Conversor oficial aduanero.</p>
+            </div>
+
+            <div class="tool-card bg-white p-4 rounded-2xl shadow-card border border-slate-100 cursor-pointer hover:border-teal-200 transition-colors group"
+                 onclick="window.location.href='check _list.html'" data-category="legal documentos checklist">
+                <div class="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <i data-lucide="list-checks" class="w-5 h-5"></i>
+                </div>
+                <h3 class="font-bold text-slate-800 text-sm">Checklist DUA</h3>
+                <p class="text-[10px] text-slate-400 mt-1 leading-tight">Lista de documentos requeridos.</p>
+            </div>
+
+            <div class="tool-card bg-white p-4 rounded-2xl shadow-card border border-slate-100 cursor-pointer hover:border-teal-200 transition-colors group"
+                 onclick="window.location.href='peso_volu.html'" data-category="calculo logistica peso">
+                <div class="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <i data-lucide="box" class="w-5 h-5"></i>
+                </div>
+                <h3 class="font-bold text-slate-800 text-sm">Peso Volumétrico</h3>
+                <p class="text-[10px] text-slate-400 mt-1 leading-tight">Calculadora Aérea/Marítima.</p>
+            </div>
+            
+            <div class="tool-card bg-white p-4 rounded-2xl shadow-card border border-slate-100 cursor-pointer hover:border-teal-200 transition-colors group"
+                 onclick="window.location.href='spec_conte.html'" data-category="logistica especificaciones contenedores">
+                <div class="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <i data-lucide="container" class="w-5 h-5"></i>
+                </div>
+                <h3 class="font-bold text-slate-800 text-sm">Specs Contenedor</h3>
+                <p class="text-[10px] text-slate-400 mt-1 leading-tight">Medidas y capacidades TEU/FEU.</p>
+            </div>
+
+            <div id="no-results" class="col-span-2 hidden text-center py-8 text-slate-400 text-sm">
+                <i data-lucide="frown" class="w-8 h-8 mx-auto mb-2"></i>
+                <p>No se encontraron herramientas con ese término.</p>
+            </div>
+
+        </section>
+        
+        <div class="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-4 flex items-center justify-between text-white shadow-lg">
+            <div>
+                <h4 class="font-bold text-sm">¿Necesitas algo más?</h4>
+                <p class="text-[10px] text-slate-400">Solicita una herramienta personalizada.</p>
+            </div>
+            <button class="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs py-2 px-4 rounded-lg transition-colors">
+                Solicitar
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+        let currentFilter = 'todos'; // Estado inicial
+
+        function filterByCategory(category) {
+            currentFilter = category.toLowerCase();
+            const cards = document.querySelectorAll('#tool-grid .tool-card');
+            const buttons = document.querySelectorAll('.filter-button');
+            
+            // 1. Actualizar estilos de botón
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active'); // Usa event.target para el botón que se hizo clic
+
+            // 2. Limpiar la búsqueda de texto
+            document.getElementById('toolSearch').value = '';
+
+            // 3. Aplicar filtro de categoría y luego aplicar la búsqueda de texto
+            filterTools(); 
+        }
+
+        function filterTools() {
+            const query = document.getElementById('toolSearch').value.toLowerCase().trim();
+            const cards = document.querySelectorAll('#tool-grid .tool-card');
+            const noResults = document.getElementById('no-results');
+            let resultsCount = 0;
+
+            cards.forEach(card => {
+                const cardText = card.textContent.toLowerCase();
+                const cardCategories = card.getAttribute('data-category').toLowerCase();
+                
+                // 1. FILTRO DE CATEGORÍA
+                const isCategoryMatch = currentFilter === 'todos' || cardCategories.includes(currentFilter);
+                
+                // 2. FILTRO DE TEXTO (Aplicado solo a las que cumplen la categoría)
+                const isTextMatch = cardText.includes(query);
+
+                if (isCategoryMatch && isTextMatch) {
+                    card.style.display = 'block';
+                    resultsCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Mostrar u ocultar el mensaje de "No Resultados"
+            if (resultsCount === 0) {
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+            }
+        }
+
+        // Inicializar el filtro al cargar para mostrar "Todos"
+        document.addEventListener('DOMContentLoaded', () => {
+            filterTools();
+        });
+
+        // --- LÓGICA PARA LA RACHA DE ACCESO ---
+        function manageUserStreak() {
+            const today = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+            const lastLoginDate = localStorage.getItem('lastLoginDate');
+            let streakCount = parseInt(localStorage.getItem('streakCount') || '0');
+
+            const streakContainer = document.getElementById('streak-container');
+            const streakIcon = document.getElementById('streak-icon');
+            const streakDisplay = document.getElementById('user-streak-display');
+
+            function setStreakActive() {
+                streakContainer.className = 'flex items-center gap-1 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100 shadow-sm';
+                streakIcon.className = 'lucide lucide-flame w-4 h-4 text-orange-500 fill-orange-500 animate-pulse';
+                streakDisplay.className = 'text-orange-700 font-bold text-sm';
+            }
+
+            function setStreakInactive() {
+                streakContainer.className = 'flex items-center gap-1 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200 shadow-sm';
+                streakIcon.className = 'lucide lucide-flame w-4 h-4 text-slate-400 fill-slate-400';
+                streakDisplay.className = 'text-slate-500 font-bold text-sm';
+            }
+
+            if (!lastLoginDate) {
+                // Primera visita
+                streakCount = 1;
+                localStorage.setItem('lastLoginDate', today);
+                localStorage.setItem('streakCount', streakCount);
+            } else {
+                const lastDate = new Date(lastLoginDate);
+                const todayDate = new Date(today);
+                
+                // Diferencia en días
+                const diffTime = todayDate - lastDate;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays === 1) {
+                    // Racha consecutiva
+                    streakCount++;
+                    localStorage.setItem('streakCount', streakCount);
+                    localStorage.setItem('lastLoginDate', today);
+                } else if (diffDays > 1) {
+                    // Racha rota
+                    streakCount = 1;
+                    localStorage.setItem('streakCount', streakCount);
+                    localStorage.setItem('lastLoginDate', today);
+                }
+                // Si diffDays es 0, es el mismo día, no se hace nada.
+            }
+
+            // Actualizar la UI
+            streakDisplay.textContent = streakCount;
+            if (streakCount > 0) {
+                setStreakActive();
+            } else {
+                setStreakInactive(); // Aunque la lógica actual siempre resulta en >= 1, esto es por si se rompe la racha.
+            }
+        }
+
+        // Ejecutar la lógica de la racha cuando la página cargue
+        document.addEventListener('DOMContentLoaded', manageUserStreak);
+
+    </script>
+</body>
+</html>

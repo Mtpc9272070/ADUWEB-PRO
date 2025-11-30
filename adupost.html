@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADUPOST | Comunidad Logística</title>
+    
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- 3. Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Configuración -->
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        emerald: { 950: '#022c22', 50: '#ecfdf5', 500: '#10b981', 600: '#059669' },
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                    },
+                    animation: {
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-28 selection:bg-emerald-100 selection:text-emerald-800">
+
+    <!-- ================= HEADER FIJO ================= -->
+    <header class="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-b border-slate-200 z-40 transition-all duration-300">
+        <div class="max-w-md mx-auto px-4 py-3">
+            <div class="flex items-center justify-between mb-3">
+                <button onclick="window.location.href='index.html'" class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors">
+                    <i data-lucide="arrow-left" class="w-6 h-6 text-slate-600"></i>
+                </button>
+                <div class="flex flex-col items-center gap-1">
+                    <h1 class="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">ADUPOST</span>
+                        <span class="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full">LIVE</span>
+                    </h1>
+                    <span id="adupost-user-display" class="text-xs text-slate-400">Cargando usuario...</span>
+                </div>
+                <button class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors relative">
+                    <i data-lucide="bell" class="w-6 h-6 text-slate-600" onclick="AduPostLogic.showNotifications()"></i>
+                    <span id="notification-indicator" class="hidden absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                </button>
+            </div>
+
+            <!-- Filtros / Tags -->
+            <div id="filter-container" class="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                <button onclick="filterPosts('all')" class="filter-btn active shrink-0 px-4 py-1.5 bg-slate-900 text-white rounded-full text-xs font-bold shadow-md transition-all">
+                    Todo
+                </button>
+                <button onclick="filterPosts('duda')" class="filter-btn shrink-0 px-4 py-1.5 bg-white text-slate-500 border border-slate-200 rounded-full text-xs font-bold shadow-sm hover:border-orange-500 hover:text-orange-600 transition-all">
+                    🆘 Ayuda
+                </button>
+                <button onclick="filterPosts('operativa')" class="filter-btn shrink-0 px-4 py-1.5 bg-white text-slate-500 border border-slate-200 rounded-full text-xs font-bold shadow-sm hover:border-blue-500 hover:text-blue-600 transition-all">
+                    🚢 Operativa
+                </button>
+                <button onclick="filterPosts('normativa')" class="filter-btn shrink-0 px-4 py-1.5 bg-white text-slate-500 border border-slate-200 rounded-full text-xs font-bold shadow-sm hover:border-purple-500 hover:text-purple-600 transition-all">
+                    ⚖️ Normativa
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="h-32"></div>
+
+    <!-- ================= FEED PRINCIPAL ================= -->
+    <main class="max-w-md mx-auto px-4 space-y-4">
+
+        <!-- CAJA DE "CREAR POST" -->
+        <div class="bg-white p-4 rounded-3xl shadow-soft border border-slate-100 relative overflow-hidden group transition-all focus-within:ring-2 focus-within:ring-emerald-100">
+            <div class="flex gap-3">
+                <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm shrink-0 text-lg">
+                    👮‍♂️
+                </div>
+                <div class="flex-1">
+                    <input type="text" id="post-input" placeholder="¿Qué está pasando en el puerto hoy?" class="w-full h-10 bg-slate-50 rounded-xl px-4 text-sm focus:outline-none focus:bg-white transition-all placeholder:text-slate-400">
+                </div>
+            </div>
+            
+            <!-- Opciones ocultas que aparecen al enfocar o si hay texto -->
+            <div id="post-actions" class="flex justify-between items-center mt-3 pl-14 transition-all">
+                <div class="flex gap-2">
+                    <select id="post-tag" class="text-xs bg-slate-100 border-none rounded-lg px-2 py-1 text-slate-600 font-bold focus:ring-0 cursor-pointer">
+                        <option value="general">General</option>
+                        <option value="duda">🆘 Ayuda</option>
+                        <option value="operativa">🚢 Operativa</option>
+                        <option value="normativa">⚖️ Normativa</option>
+                    </select>
+                </div>
+                <button onclick="AduPostLogic.showPostModal()" id="publish-btn" class="bg-slate-900 text-white px-5 py-1.5 rounded-xl text-xs font-bold hover:bg-emerald-600 active:scale-95 transition-all shadow-md">
+                    Publicar
+                </button>
+            </div>
+        </div>
+
+        <!-- CONTENEDOR DEL FEED -->
+        <div id="posts-container" class="space-y-4">
+            <!-- Skeleton Loader -->
+            <div class="animate-pulse space-y-4">
+                <div class="bg-white h-40 rounded-3xl"></div>
+                <div class="bg-white h-40 rounded-3xl"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ================= FAB (Scroll Top) ================= -->
+    <div class="fixed bottom-24 right-4 z-40">
+        <button onclick="window.scrollTo({top:0, behavior:'smooth'}); document.getElementById('post-input').focus();" class="w-14 h-14 bg-gradient-to-tr from-emerald-500 to-teal-600 rounded-full shadow-lg shadow-emerald-500/40 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all">
+            <i data-lucide="plus" class="w-8 h-8"></i>
+        </button>
+    </div>
+
+    <!-- ================= DOCK DE NAVEGACIÓN ================= -->
+    <div class="fixed bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none">
+        <nav class="bg-white/95 backdrop-blur-2xl border border-white/50 rounded-full px-2 py-2 shadow-[0_20px_40px_-5px_rgba(0,0,0,0.15)] pointer-events-auto flex items-center gap-1 md:gap-4 max-w-[95%]">
+            <button onclick="window.location.href='index.html'" class="w-12 h-12 rounded-full flex flex-col items-center justify-center text-slate-400 hover:bg-slate-50 transition-colors">
+                <i data-lucide="home" class="w-5 h-5"></i>
+            </button>
+            <div class="w-px h-6 bg-slate-200 mx-1"></div>
+            <!-- Botón Activo ADUPOST -->
+            <button class="w-12 h-12 rounded-full flex flex-col items-center justify-center text-emerald-600 bg-emerald-50 shadow-inner">
+                <i data-lucide="message-square" class="w-5 h-5"></i>
+            </button>
+        </nav>
+    </div>
+
+    <!-- LOGIC SCRIPT -->
+    <script type="module">
+    // --- 1. Importaciones de Firebase (Realtime Database v9) ---
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.11/firebase-app.js';
+    import { getDatabase, ref, onValue, push, update, serverTimestamp, query, limitToLast, orderByChild, set, get, increment } from 'https://www.gstatic.com/firebasejs/9.6.11/firebase-database.js';
+    // Importar la configuración local (asegúrate de que './config.js' existe)
+    import { firebaseConfig } from './config.js'; 
+
+    // --- 2. Inicialización y Lectura de Datos de Usuario ---
+    // ... (sin cambios en esta sección)
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Priorizar la lectura de datos desde la URL (enviados desde index.html)
+    const urlParams = new URLSearchParams(window.location.search);
+    const PLAYER_KEY = urlParams.get('player_key') || localStorage.getItem('aduweb_player_key');
+    let PLAYER_NAME = urlParams.get('player_name') || localStorage.getItem('aduweb_player_name');
+
+    const POSTS_PATH = 'adupost/posts'; // Ruta de la colección de posts en RTDB
+    const NOTIFICATIONS_PATH = 'adupost/notifications'; // Ruta para notificaciones
+
+    const AduPostLogic = {
+        data: {
+            allPosts: [],
+            currentFilter: 'all',
+            playerName: PLAYER_NAME, 
+            notifications: [],
+            playerKey: PLAYER_KEY,
+            role: 'Agente', // Valor por defecto, se actualizará desde Firebase
+        },
+
+        init: async function() {
+            // 1. Verificar sesión (Si el key o name está nulo, redirigir)
+            if (!this.data.playerKey || !this.data.playerName) {
+                this.handleUnauthenticated();
+                return;
+            }
+
+            // 2. Cargar datos del usuario y luego el resto de la app
+            await this.loadUserProfile();
+            this.updateUserDisplay();
+
+            // 3. Iniciar listeners de posts
+            this.loadPosts();
+            this.listenForNotifications();
+            
+            // 4. Conectar botones de UI
+            // El botón de publicar ahora se maneja desde el modal
+
+            // Conectar botones de filtro
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.onclick = () => this.setFilter(btn.getAttribute('onclick').match(/'(.*?)'/)[1]);
+            });
+        },
+
+        loadUserProfile: async function() {
+            const userRef = ref(db, `players/${this.data.playerKey}`);
+            try {
+                const snapshot = await get(userRef);
+                if (snapshot.exists()) {
+                    const userData = snapshot.val();
+                    this.data.role = userData.role || 'Agente';
+                }
+            } catch (error) {
+                console.error("Error al cargar el perfil del usuario:", error);
+            }
+        },
+
+        listenForNotifications: function() {
+            if (!this.data.playerKey) return;
+            const notificationsRef = query(ref(db, `${NOTIFICATIONS_PATH}/${this.data.playerKey}`), limitToLast(20));
+            
+            onValue(notificationsRef, (snapshot) => {
+                const notifications = [];
+                let hasUnread = false;
+                snapshot.forEach(child => {
+                    const notif = { id: child.key, ...child.val() };
+                    notifications.unshift(notif); // Añadir al principio para ver las más nuevas primero
+                    if (!notif.read) hasUnread = true;
+                });
+                this.data.notifications = notifications;
+                
+                const indicator = document.getElementById('notification-indicator');
+                if (indicator) indicator.style.display = hasUnread ? 'block' : 'none';
+            });
+        },
+
+        loadPosts: function() {
+            // Consulta para obtener los últimos 50 posts, ordenados por marca de tiempo
+            const postsQuery = query(ref(db, POSTS_PATH), orderByChild('createdAt'), limitToLast(50));
+
+            // onValue: Escucha los cambios en tiempo real
+            onValue(postsQuery, (snapshot) => {
+                let posts = [];
+                snapshot.forEach((childSnapshot) => {
+                    const postData = childSnapshot.val();
+                    // Añadir al principio para que el post más reciente sea el primero
+                    posts.unshift({ id: childSnapshot.key, ...postData });
+                });
+                
+                this.data.allPosts = posts;
+                this.renderPosts(); // Redibuja la interfaz con los nuevos datos
+            });
+        },
+
+        updateUserDisplay: function() {
+            const userDisplay = document.getElementById('adupost-user-display');
+            if (userDisplay) {
+                userDisplay.textContent = `${this.data.playerName} (${this.data.role})`;
+            }
+        },
+
+        handleUnauthenticated: function() {
+            // Uso de SweetAlert2 (asumo que está importado en adupost.html)
+            if (typeof Swal !== 'undefined') {
+                 Swal.fire({
+                    title: 'Acceso Denegado',
+                    text: 'Debes iniciar sesión para acceder a la comunidad AduPost.',
+                    icon: 'error',
+                    confirmButtonText: 'Ir a Iniciar Sesión'
+                }).then(() => {
+                    window.location.href = 'index.html';
+                });
+            } else {
+                 window.location.href = 'index.html';
+            }
+        },
+
+        setFilter: function(filter) {
+            this.data.currentFilter = filter;
+            document.querySelectorAll('#filter-container .filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-slate-900', 'text-white');
+                btn.classList.add('bg-white', 'text-slate-500');
+            });
+
+            const activeBtn = document.querySelector(`.filter-btn[onclick*="'${filter}'"]`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-white', 'text-slate-500');
+                activeBtn.classList.add('active', 'bg-emerald-600', 'text-white');
+            }
+            
+            this.renderPosts();
+        },
+
+        renderPosts: function() {
+            const container = document.getElementById('posts-container');
+            if (!container) return;
+            container.innerHTML = ''; 
+
+            let filteredPosts = this.data.allPosts;
+            if (this.data.currentFilter !== 'all') {
+                filteredPosts = this.data.allPosts.filter(p => p.tag === this.data.currentFilter);
+            }
+            
+            if (filteredPosts.length === 0) {
+                 container.innerHTML = this.renderEmptyState(this.data.currentFilter);
+                 lucide.createIcons();
+                 return;
+            }
+
+            filteredPosts.forEach(post => {
+                container.innerHTML += this.renderPost(post);
+            });
+            
+            lucide.createIcons();
+        },
+
+        renderEmptyState: function(filter) {
+            const filterName = filter === 'all' ? 'la comunidad' : `la categoría "${filter.toUpperCase()}"`;
+            return `
+                <div class="text-center py-10 opacity-70">
+                    <i data-lucide="frown" class="w-10 h-10 text-slate-400 mx-auto mb-3"></i>
+                    <p class="text-sm text-slate-500">Aún no hay publicaciones en ${filterName}.</p>
+                    <button onclick="AduPostLogic.showPostModal()" class="mt-4 text-xs font-bold text-emerald-600 hover:underline">
+                        ¡Sé el primero en publicar!
+                    </button>
+                </div>
+            `;
+        },
+
+        renderPost: function(post) {
+            const isLiked = post.likesBy && post.likesBy[this.data.playerKey];
+            const likeColor = isLiked ? 'text-red-500' : 'text-slate-400';
+            const tagClass = this.getTagClass(post.tag);
+            const initial = post.author ? post.author.charAt(0).toUpperCase() : '?';
+
+            return `
+                <div id="post-${post.id}" class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 animate-fade-in mb-4">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-lg">${initial}</div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">${post.author || 'Agente Anónimo'}</h4>
+                                <span class="text-xs text-slate-400">${post.role || 'Agente'} | ${this.timeAgo(post.createdAt)}</span>
+                            </div>
+                        </div>
+                        <span class="${tagClass.bg} ${tagClass.text} text-[10px] font-black px-2 py-0.5 rounded-full uppercase">${post.tag || 'general'}</span>
+                    </div>
+
+                    <p class="text-sm text-slate-700 mb-4 whitespace-pre-wrap">${post.text}</p>
+                    
+                    <div class="flex justify-between items-center text-xs border-t border-slate-100 pt-3">
+                        <div class="flex gap-4">
+                            <button onclick="AduPostLogic.toggleLike('${post.id}')" class="flex items-center gap-1 ${likeColor} hover:text-red-600 transition-colors">
+                                <i data-lucide="heart" class="w-4 h-4 ${isLiked ? 'fill-current' : ''}"></i>
+                                <span class="font-bold">${post.likes || 0}</span>
+                            </button>
+                            <button class="flex items-center gap-1 text-slate-400 hover:text-emerald-600 transition-colors" onclick="AduPostLogic.toggleComments('${post.id}')">
+                                <i data-lucide="message-square" class="w-4 h-4"></i>
+                                <span class="font-medium">${post.commentCount || 0}</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Contenedor para los comentarios (inicialmente vacío) -->
+                    <div id="comments-for-${post.id}" class="mt-4"></div>
+                </div>
+            `;
+        },
+
+        toggleComments: function(postId) {
+            const commentsContainer = document.getElementById(`comments-for-${postId}`);
+            if (!commentsContainer) return;
+
+            if (commentsContainer.innerHTML === '') {
+                // Si está vacío, cargar y mostrar comentarios
+                commentsContainer.innerHTML = `<div class="text-center text-xs text-slate-400 py-2">Cargando comentarios...</div>`;
+                this.loadAndRenderComments(postId);
+            } else {
+                // Si ya tiene contenido, lo vacía para ocultarlo
+                commentsContainer.innerHTML = '';
+            }
+        },
+
+        loadAndRenderComments: function(postId) {
+            const commentsRef = query(ref(db, `${POSTS_PATH}/${postId}/comments`), orderByChild('createdAt'));
+            const commentsContainer = document.getElementById(`comments-for-${postId}`);
+            
+            onValue(commentsRef, (snapshot) => {
+                commentsContainer.innerHTML = ''; // Limpiar antes de renderizar
+                if (!snapshot.exists()) {
+                    commentsContainer.innerHTML += `<p class="text-xs text-slate-400 pl-14 py-2">No hay comentarios aún. ¡Sé el primero!</p>`;
+                } else {
+                    snapshot.forEach(childSnapshot => {
+                        const comment = { id: childSnapshot.key, ...childSnapshot.val() };
+                        commentsContainer.innerHTML += this.renderComment(postId, comment);
+                    });
+                }
+                // Añadir el input para un nuevo comentario al final
+                commentsContainer.innerHTML += this.renderCommentInput(postId);
+                lucide.createIcons();
+            }, { onlyOnce: true }); // Cargar solo una vez para evitar re-renderizados infinitos si hay listeners anidados
+        },
+
+        renderComment: function(postId, comment) {
+            const initial = comment.author ? comment.author.charAt(0).toUpperCase() : '?';
+            let repliesHtml = '';
+            if (comment.replies) {
+                Object.values(comment.replies).forEach(reply => {
+                    repliesHtml += this.renderReply(reply);
+                });
+            }
+
+            return `
+                <div class="ml-10 mt-4 border-l-2 border-slate-100 pl-4 py-2">
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold">${initial}</div>
+                        <span class="font-bold text-xs">${comment.author}</span>
+                        <span class="text-xs text-slate-400">• ${this.timeAgo(comment.createdAt)}</span>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-2">${comment.text}</p>
+                    <button onclick="AduPostLogic.toggleReplyInput('${postId}', '${comment.id}')" class="text-xs text-emerald-600 font-bold hover:underline">Responder</button>
+                    <div class="pl-6 mt-2 space-y-3">${repliesHtml}</div>
+                    <div id="reply-input-for-${comment.id}"></div>
+                </div>
+            `;
+        },
+
+        renderReply: function(reply) {
+            const initial = reply.author ? reply.author.charAt(0).toUpperCase() : '?';
+            return `
+                <div class="flex items-start gap-2">
+                    <div class="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">${initial}</div>
+                    <div>
+                        <p class="text-xs">
+                            <span class="font-bold">${reply.author}</span>
+                            <span class="text-slate-500"> ${reply.text}</span>
+                        </p>
+                        <span class="text-[10px] text-slate-400">${this.timeAgo(reply.createdAt)}</span>
+                    </div>
+                </div>
+            `;
+        },
+
+        renderCommentInput: function(postId, parentCommentId = null) {
+            const placeholder = parentCommentId ? 'Escribe una respuesta...' : 'Añade un comentario...';
+            const functionCall = `AduPostLogic.submitComment('${postId}', ${parentCommentId ? `'${parentCommentId}'` : null})`;
+            const inputId = parentCommentId ? `reply-text-${parentCommentId}` : `comment-text-${postId}`;
+
+            return `
+                <div class="flex items-center gap-2 mt-3 ${parentCommentId ? '' : 'ml-10 pl-4 border-l-2 border-slate-100'}">
+                    <input type="text" id="${inputId}" class="flex-1 bg-slate-100 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-300" placeholder="${placeholder}">
+                    <button onclick="${functionCall}" class="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center shrink-0 hover:bg-emerald-700 transition-colors">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `;
+        },
+
+        toggleReplyInput: function(postId, commentId) {
+            const container = document.getElementById(`reply-input-for-${commentId}`);
+            if (container.innerHTML === '') {
+                container.innerHTML = this.renderCommentInput(postId, commentId);
+                lucide.createIcons();
+                document.getElementById(`reply-text-${commentId}`).focus();
+            } else {
+                container.innerHTML = '';
+            }
+        },
+
+        submitComment: function(postId, parentCommentId = null) {
+            const inputId = parentCommentId ? `reply-text-${parentCommentId}` : `comment-text-${postId}`;
+            const textInput = document.getElementById(inputId);
+            const text = textInput.value.trim();
+
+            if (text === '') return;
+
+            const post = this.data.allPosts.find(p => p.id === postId);
+            if (!post) return;
+
+            const commentData = {
+                author: this.data.playerName,
+                authorKey: this.data.playerKey,
+                text: text,
+                createdAt: serverTimestamp(),
+            };
+
+            let dbRef;
+            let notificationType;
+            let recipientKey;
+
+            if (parentCommentId) {
+                // Es una respuesta a un comentario
+                dbRef = ref(db, `${POSTS_PATH}/${postId}/comments/${parentCommentId}/replies`);
+                const parentComment = post.comments[parentCommentId];
+                recipientKey = parentComment.authorKey;
+                notificationType = 'reply';
+            } else {
+                // Es un comentario nuevo
+                dbRef = ref(db, `${POSTS_PATH}/${postId}/comments`);
+                recipientKey = post.createdBy;
+                notificationType = 'comment';
+                // Actualizar contador de comentarios en el post
+                update(ref(db, `${POSTS_PATH}/${postId}`), { commentCount: increment(1) });
+            }
+
+            push(dbRef, commentData).then(() => {
+                textInput.value = '';
+                if (parentCommentId) this.toggleReplyInput(postId, parentCommentId); // Ocultar input después de enviar
+                this.createNotification(recipientKey, postId, notificationType, text);
+            }).catch(error => console.error("Error al enviar comentario:", error));
+        },
+
+        toggleLike: function(postId) {
+            const postRef = ref(db, `${POSTS_PATH}/${postId}`);
+            const post = this.data.allPosts.find(p => p.id === postId);
+
+            if (!post) return;
+
+            const isLiked = post.likesBy && post.likesBy[this.data.playerKey];
+            let newLikes = post.likes || 0;
+            let updates = {};
+
+            if (isLiked) {
+                newLikes = Math.max(0, newLikes - 1);
+                updates[`likesBy/${this.data.playerKey}`] = null; 
+            } else {
+                newLikes++;
+                updates[`likesBy/${this.data.playerKey}`] = true; 
+            }
+
+            updates.likes = newLikes;
+            
+            update(postRef, updates).catch(error => {
+                console.error("Error al actualizar like:", error);
+                Swal.fire('Error', 'No se pudo actualizar el like.', 'error');
+            });
+
+            if (!isLiked) { // Solo notificar cuando se da like, no cuando se quita
+                this.createNotification(post.createdBy, postId, 'like', post.text);
+            }
+        },
+
+        showPostModal: function() {
+            const initial = this.data.playerName.charAt(0).toUpperCase();
+
+            if (typeof Swal === 'undefined') {
+                alert('La función de publicar requiere SweetAlert2.');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Crear Nueva Publicación',
+                html: `
+                    <div class="flex items-start gap-3 mb-4 mt-4">
+                        <div class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center text-lg font-bold flex-shrink-0">${initial}</div>
+                        <textarea id="modal-post-content" class="flex-1 border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-500 resize-none" rows="5" placeholder="Comparte tu experiencia, pregunta o dato profesional..."></textarea>
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <select id="modal-post-category" class="px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
+                            <option value="general">General</option>
+                            <option value="duda">Duda Técnica</option>
+                            <option value="caso">Caso Real</option>
+                            <option value="noticia">Noticia Aduanera</option>
+                        </select>
+                        <span id="char-count" class="text-xs text-slate-500">0/300</span>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Publicar Ahora',
+                confirmButtonColor: '#059669',
+                cancelButtonText: 'Cancelar',
+                didOpen: () => {
+                    const content = document.getElementById('modal-post-content');
+                    const charCount = document.getElementById('char-count');
+                    
+                    content.addEventListener('input', () => {
+                        const count = content.value.length;
+                        charCount.innerText = `${count}/300`;
+                        if (count > 300) {
+                            content.value = content.value.substring(0, 300);
+                            charCount.classList.add('text-red-500');
+                        } else {
+                            charCount.classList.remove('text-red-500');
+                        }
+                    });
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const content = document.getElementById('modal-post-content').value.trim();
+                    const category = document.getElementById('modal-post-category').value;
+                    
+                    if (content.length > 5) {
+                        this.submitPost(content, category);
+                    } else {
+                        if (typeof Swal !== 'undefined') Swal.fire('Error', 'La publicación es muy corta.', 'warning');
+                    }
+                }
+            });
+        },
+
+        submitPost: function(content, category) {
+            const newPostRef = push(ref(db, POSTS_PATH));
+
+            const postData = {
+                author: this.data.playerName,
+                role: this.data.role,
+                text: content,
+                tag: category,
+                likes: 0,
+                commentCount: 0,
+                createdAt: serverTimestamp(), 
+                createdBy: this.data.playerKey,
+            };
+
+            set(newPostRef, postData)
+                .then(() => {
+                    if (typeof Swal !== 'undefined') Swal.fire('Publicado', 'Tu mensaje ha sido compartido en AduPost.', 'success');
+                })
+                .catch((error) => {
+                    console.error("Error al publicar:", error);
+                    if (typeof Swal !== 'undefined') Swal.fire('Error', 'No se pudo subir la publicación. Intenta de nuevo.', 'error');
+                });
+        },
+
+        createNotification: function(recipientKey, postId, type, textSnippet) {
+            if (recipientKey === this.data.playerKey) return; // No notificarse a uno mismo
+
+            const notificationsRef = ref(db, `${NOTIFICATIONS_PATH}/${recipientKey}`);
+            const newNotificationRef = push(notificationsRef);
+
+            const notificationData = {
+                type: type, // 'like', 'comment', 'reply'
+                fromUser: this.data.playerName,
+                postId: postId,
+                textSnippet: textSnippet.substring(0, 40) + (textSnippet.length > 40 ? '...' : ''),
+                read: false,
+                createdAt: serverTimestamp()
+            };
+
+            set(newNotificationRef, notificationData);
+        },
+
+        showNotifications: function() {
+            let notificationsHtml = '<div class="text-sm max-h-80 overflow-y-auto">';
+            if (this.data.notifications.length === 0) {
+                notificationsHtml += '<p class="text-center text-slate-500 py-4">No tienes notificaciones.</p>';
+            } else {
+                this.data.notifications.forEach(notif => {
+                    const icon = notif.type === 'like' ? '❤️' : '💬';
+                    const message = notif.type === 'like' 
+                        ? `le ha gustado tu publicación.` 
+                        : `ha comentado: "${notif.textSnippet}"`;
+                    const bgColor = notif.read ? 'bg-white' : 'bg-emerald-50';
+
+                    notificationsHtml += `
+                        <div class="p-3 border-b border-slate-100 ${bgColor}">
+                            <p class="text-slate-700">
+                                <span class="font-bold">${icon} ${notif.fromUser}</span> ${message}
+                            </p>
+                            <span class="text-xs text-slate-400">${this.timeAgo(notif.createdAt)}</span>
+                        </div>
+                    `;
+                });
+            }
+            notificationsHtml += '</div>';
+
+            Swal.fire({
+                title: 'Notificaciones',
+                html: notificationsHtml,
+                showConfirmButton: false,
+                showCloseButton: true,
+            });
+
+            // Marcar todas como leídas
+            this.markNotificationsAsRead();
+        },
+
+        markNotificationsAsRead: function() {
+            const updates = {};
+            this.data.notifications.forEach(notif => {
+                if (!notif.read) updates[`${NOTIFICATIONS_PATH}/${this.data.playerKey}/${notif.id}/read`] = true;
+            });
+            if (Object.keys(updates).length > 0) update(ref(db), updates);
+        },
+
+        getTagClass: function(tag) {
+            switch (tag) {
+                case 'duda': // Ayuda
+                    return { bg: 'bg-orange-100', text: 'text-orange-700' };
+                case 'operativa':
+                    return { bg: 'bg-blue-100', text: 'text-blue-700' };
+                case 'noticia':
+                    return { bg: 'bg-blue-100', text: 'text-blue-700' };
+                case 'general':
+                default:
+                    return { bg: 'bg-emerald-100', text: 'text-emerald-700' };
+            }
+        },
+
+        timeAgo: function(timestamp) {
+            if (!timestamp) return 'ahora';
+            const now = new Date();
+            const seconds = Math.floor((now - timestamp) / 1000);
+            
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + " año" + (Math.floor(interval) > 1 ? 's' : '');
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + " mes" + (Math.floor(interval) > 1 ? 'es' : '');
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + "d";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + "h";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + "m";
+            if (seconds < 10) return "ahora";
+
+            return "ahora";
+        }
+    };
+
+    // Exponer globalmente y arrancar
+    window.AduPostLogic = AduPostLogic;
+    window.addEventListener('load', () => {
+        AduPostLogic.init(); // La función init ahora es asíncrona
+    });
+</script>
+</body>
+</html>
+              
