@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADUWEB | Estiba 3D Pro</title>
+    
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- 3. Babylon.js Core, Loaders & Materials -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+
+    <!-- 4. Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <!-- Configuración Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        slate: { 850: '#1e293b' },
+                        teal: { 400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488' }
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px 0 rgba(15, 23, 42, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { overflow: hidden; background-color: #0f172a; }
+        #renderCanvas { width: 100%; height: 100%; touch-action: none; outline: none; }
+        
+        /* Panel Lateral */
+        #panel { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .panel-collapsed #panel { transform: translateX(-100%); }
+        
+        /* Inputs Custom */
+        .input-glass {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(203, 213, 225, 0.5);
+            backdrop-filter: blur(4px);
+        }
+        .input-glass:focus { background: white; border-color: #14b8a6; outline: none; }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col md:flex-row overflow-hidden text-slate-800 bg-slate-100">
+
+    <!-- ================= PANEL DE CONTROL ================= -->
+    <aside id="panel" class="absolute md:relative z-20 w-full md:w-[400px] h-full bg-white/90 backdrop-blur-xl border-r border-slate-200 shadow-glass flex flex-col transition-transform duration-300 transform translate-x-0">
+        
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white/50">
+            <div class="flex items-center gap-3">
+                <button onclick="window.location.href='../../index.html'" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-500">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </button>
+                <div>
+                    <h1 class="text-sm font-black text-slate-800 leading-none flex gap-1">
+                        ADUWEB <span class="text-teal-600">LOAD</span>
+                    </h1>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Simulador Pro</span>
+                </div>
+            </div>
+            <button id="mobile-close-btn" class="md:hidden p-2 text-slate-400 hover:text-red-500">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Contenido -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+
+            <!-- 1. Configuración Contenedor -->
+            <div class="space-y-3">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                        <i data-lucide="container" class="w-3 h-3"></i>
+                    </div>
+                    <h2 class="text-xs font-black text-slate-700 uppercase tracking-wide">Contenedor</h2>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="setContainer('20ft')" id="btn-20ft" class="flex flex-col items-center justify-center p-3 rounded-xl border-2 border-teal-500 bg-teal-50 text-teal-700 transition-all font-bold text-xs shadow-sm">
+                        <span>20' Standard</span>
+                        <span class="text-[10px] font-normal opacity-70">33.2 m³</span>
+                    </button>
+                    <button onclick="setContainer('40ft')" id="btn-40ft" class="flex flex-col items-center justify-center p-3 rounded-xl border-2 border-transparent bg-white hover:bg-slate-50 text-slate-500 transition-all font-bold text-xs shadow-sm">
+                        <span>40' High Cube</span>
+                        <span class="text-[10px] font-normal opacity-70">76.4 m³</span>
+                    </button>
+                </div>
+                
+                <!-- Info de capacidad en tiempo real -->
+                <div class="bg-slate-800 rounded-xl p-3 text-white flex justify-between items-center">
+                    <div>
+                        <span class="text-[10px] uppercase text-slate-400 font-bold">Ocupación</span>
+                        <div class="text-lg font-mono font-bold text-teal-400" id="occupancy-display">0.0%</div>
+                    </div>
+                    <div class="h-8 w-px bg-slate-600"></div>
+                    <div class="text-right">
+                        <span class="text-[10px] uppercase text-slate-400 font-bold">Peso Total</span>
+                        <div class="text-lg font-mono font-bold text-white" id="weight-display">0 kg</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Configuración de Carga -->
+            <div class="space-y-4 pt-4 border-t border-slate-100">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-6 h-6 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">
+                        <i data-lucide="package" class="w-3 h-3"></i>
+                    </div>
+                    <h2 class="text-xs font-black text-slate-700 uppercase tracking-wide">Agregar Mercancía</h2>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    
+                    <!-- Dimensiones -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Largo (cm)</label>
+                            <input id="box-l" type="number" value="60" class="input-glass w-full rounded-lg px-2 py-1.5 text-sm font-bold text-slate-700">
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Ancho (cm)</label>
+                            <input id="box-w" type="number" value="40" class="input-glass w-full rounded-lg px-2 py-1.5 text-sm font-bold text-slate-700">
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Alto (cm)</label>
+                            <input id="box-h" type="number" value="40" class="input-glass w-full rounded-lg px-2 py-1.5 text-sm font-bold text-slate-700">
+                        </div>
+                    </div>
+
+                    <!-- Cantidad y Peso -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Cantidad</label>
+                            <input id="box-qty" type="number" value="50" class="input-glass w-full rounded-lg px-2 py-1.5 text-sm font-bold text-slate-700">
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Peso Un (kg)</label>
+                            <input id="box-weight" type="number" value="15" class="input-glass w-full rounded-lg px-2 py-1.5 text-sm font-bold text-slate-700">
+                        </div>
+                    </div>
+
+                    <!-- Color y Pallet -->
+                    <div class="flex items-center gap-4 pt-2">
+                        <div>
+                            <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Color Caja</label>
+                            <input id="box-color" type="color" value="#d2b48c" class="h-8 w-12 rounded cursor-pointer border-none bg-transparent" title="Color base (Cartón)">
+                        </div>
+                        
+                        <!-- TOGGLE PALLET -->
+                        <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 cursor-pointer hover:bg-slate-100 transition" onclick="document.getElementById('use-pallet').click()">
+                            <input type="checkbox" id="use-pallet" class="w-4 h-4 text-teal-600 rounded focus:ring-teal-500 cursor-pointer" checked>
+                            <label for="use-pallet" class="text-xs font-bold text-slate-700 cursor-pointer select-none">Pallet Base</label>
+                            <i data-lucide="layers" class="w-4 h-4 text-slate-400 ml-1"></i>
+                        </div>
+                    </div>
+
+                    <button onclick="addCargo()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Cargar al Contenedor
+                    </button>
+
+                </div>
+            </div>
+
+            <!-- Botón Reiniciar -->
+            <button onclick="resetScene()" class="w-full py-3 text-red-500 font-bold hover:bg-red-50 rounded-xl transition text-xs border border-transparent hover:border-red-100">
+                <i data-lucide="trash-2" class="w-3 h-3 inline mr-1"></i> Vaciar Contenedor
+            </button>
+
+        </div>
+    </aside>
+
+    <!-- ================= CANVAS 3D ================= -->
+    <main class="flex-1 relative bg-slate-900">
+        <!-- Botones Flotantes -->
+        <div class="absolute top-4 left-4 z-10 flex gap-2">
+            <button id="panel-toggle-btn" class="w-10 h-10 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition-colors border border-white/10">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <button onclick="cameraReset()" class="w-10 h-10 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition-colors border border-white/10" title="Reset Cámara">
+                <i data-lucide="video" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <canvas id="renderCanvas"></canvas>
+        
+        <!-- Loading Overlay -->
+        <div id="loading" class="absolute inset-0 bg-slate-900 flex items-center justify-center z-50 transition-opacity duration-500">
+            <div class="text-center">
+                <div class="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <h2 class="text-white font-bold text-lg">Cargando Simulador 3D Pro...</h2>
+            </div>
+        </div>
+    </main>
+
+    <!-- LÓGICA BABYLON.JS -->
+    <script>
+        lucide.createIcons();
+
+        // Variables Globales
+        const canvas = document.getElementById("renderCanvas");
+        let engine, scene, camera;
+        let containerMesh, ground;
+        let cargoItems = [];
+        
+        // Estado del Contenedor
+        let currentContainer = {
+            type: '20ft',
+            length: 590, // cm internas aprox
+            width: 235,
+            height: 239,
+            maxVol: 33.2 // m3
+        };
+
+        // Estado de Carga (Global)
+        let currentLoad = {
+            volume: 0,
+            weight: 0,
+            // Coordenadas actuales de llenado
+            nextX: 0,
+            nextY: 0,
+            nextZ: 0,
+            // Altura de la capa actual (la caja más alta de la fila actual)
+            currentLayerHeight: 0
+        };
+
+        // --- INICIALIZACIÓN BABYLON ---
+        async function initBabylon() {
+            engine = new BABYLON.Engine(canvas, true);
+            
+            const createScene = function () {
+                const scene = new BABYLON.Scene(engine);
+                scene.clearColor = new BABYLON.Color4(0.06, 0.09, 0.16, 1); 
+                
+                // Efecto Glow
+                var gl = new BABYLON.GlowLayer("glow", scene);
+                gl.intensity = 0.3;
+
+                // Cámara
+                camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 1000, new BABYLON.Vector3(0, 0, 0), scene);
+                camera.attachControl(canvas, true);
+                camera.wheelPrecision = 0.5;
+                camera.minZ = 10;
+
+                // Iluminación
+                const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+                light.intensity = 0.7;
+                
+                const dirLight = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(-1, -2, -1), scene);
+                dirLight.position = new BABYLON.Vector3(200, 400, 200);
+                dirLight.intensity = 0.5;
+
+                // Suelo Industrial
+                if (BABYLON.GridMaterial) {
+                    const groundMat = new BABYLON.GridMaterial("groundMat", scene);
+                    groundMat.majorUnitFrequency = 100;
+                    groundMat.minorUnitVisibility = 0.3;
+                    groundMat.gridRatio = 10;
+                    groundMat.backFaceCulling = false;
+                    groundMat.mainColor = new BABYLON.Color3(0.3, 0.4, 0.5);
+                    groundMat.lineColor = new BABYLON.Color3(0.4, 0.5, 0.6);
+                    groundMat.opacity = 0.2;
+                    ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 2000, height: 2000}, scene);
+                    ground.material = groundMat;
+                    ground.position.y = -5;
+                } else {
+                    const groundMat = new BABYLON.StandardMaterial("groundMat", scene);
+                    groundMat.wireframe = true;
+                    groundMat.alpha = 0.1;
+                    ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 2000, height: 2000}, scene);
+                    ground.material = groundMat;
+                    ground.position.y = -5;
+                }
+
+                return scene;
+            };
+
+            scene = createScene();
+            createContainerMesh();
+
+            engine.runRenderLoop(() => {
+                scene.render();
+            });
+
+            window.addEventListener("resize", () => {
+                engine.resize();
+            });
+
+            setTimeout(() => {
+                document.getElementById('loading').style.opacity = '0';
+                setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+            }, 1000);
+        }
+
+        // --- CONSTRUCTOR DE CONTENEDOR INDUSTRIAL ---
+        function createContainerMesh() {
+            if(containerMesh) containerMesh.dispose();
+
+            const len = currentContainer.length;
+            const wid = currentContainer.width;
+            const hei = currentContainer.height;
+
+            containerMesh = new BABYLON.TransformNode("containerRoot", scene);
+            
+            // Marco Estructural
+            const frameMat = new BABYLON.PBRMaterial("metalMat", scene);
+            frameMat.metallic = 0.8;
+            frameMat.roughness = 0.4;
+            frameMat.albedoColor = new BABYLON.Color3(0.1, 0.3, 0.5); 
+            const beamThick = 8;
+            
+            // Postes
+            const pillars = [
+                {x: wid/2, z: len/2}, {x: -wid/2, z: len/2},
+                {x: wid/2, z: -len/2}, {x: -wid/2, z: -len/2}
+            ];
+            pillars.forEach(p => {
+                const post = BABYLON.MeshBuilder.CreateBox("post", {height: hei, width: beamThick, depth: beamThick}, scene);
+                post.position = new BABYLON.Vector3(p.x, hei/2, p.z);
+                post.material = frameMat;
+                post.parent = containerMesh;
+            });
+
+            // Vigas
+            const beams = [
+                {w: beamThick, h: beamThick, d: len, x: wid/2, y: 0},
+                {w: beamThick, h: beamThick, d: len, x: -wid/2, y: 0},
+                {w: beamThick, h: beamThick, d: len, x: wid/2, y: hei},
+                {w: beamThick, h: beamThick, d: len, x: -wid/2, y: hei},
+                {w: wid, h: beamThick, d: beamThick, x: 0, y: 0, z: len/2},
+                {w: wid, h: beamThick, d: beamThick, x: 0, y: 0, z: -len/2},
+                {w: wid, h: beamThick, d: beamThick, x: 0, y: hei, z: len/2},
+                {w: wid, h: beamThick, d: beamThick, x: 0, y: hei, z: -len/2},
+            ];
+            beams.forEach(b => {
+                const beam = BABYLON.MeshBuilder.CreateBox("beam", {width: b.w, height: b.h, depth: b.d}, scene);
+                beam.position = new BABYLON.Vector3(b.x || 0, b.y, b.z || 0);
+                beam.material = frameMat;
+                beam.parent = containerMesh;
+            });
+
+            // Suelo
+            const floorMat = new BABYLON.StandardMaterial("floorMat", scene);
+            floorMat.diffuseColor = new BABYLON.Color3(0.5, 0.35, 0.2);
+            const noiseTexture = new BABYLON.NoiseProceduralTexture("woodNoise", 256, scene);
+            floorMat.diffuseTexture = noiseTexture;
+
+            const floor = BABYLON.MeshBuilder.CreateBox("floor", { width: wid-2, height: 2, depth: len-2 }, scene);
+            floor.material = floorMat;
+            floor.position.y = 1;
+            floor.parent = containerMesh;
+
+            // Paredes (Vidrio)
+            const glassMat = new BABYLON.PBRMaterial("glassMat", scene);
+            glassMat.alpha = 0.15;
+            glassMat.albedoColor = new BABYLON.Color3(0.7, 0.9, 1);
+            glassMat.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
+            glassMat.backFaceCulling = false;
+
+            const walls = BABYLON.MeshBuilder.CreateBox("walls", { width: wid-1, height: hei-1, depth: len-1 }, scene);
+            walls.material = glassMat;
+            walls.position.y = hei/2;
+            walls.parent = containerMesh;
+
+            // Reset Punteros de Carga
+            currentLoad.nextX = -wid/2;
+            currentLoad.nextY = 0;
+            currentLoad.nextZ = -len/2;
+            currentLoad.currentLayerHeight = 0;
+            
+            // Cámara
+            camera.radius = len * 1.5;
+            camera.target = new BABYLON.Vector3(0, hei/2, 0);
+        }
+
+        window.setContainer = (type) => {
+            // UI Update
+            document.getElementById('btn-20ft').className = type === '20ft' ? "flex flex-col items-center justify-center p-3 rounded-xl border-2 border-teal-500 bg-teal-50 text-teal-700 font-bold text-xs shadow-sm" : "flex flex-col items-center justify-center p-3 rounded-xl border-2 border-transparent bg-white text-slate-500 font-bold text-xs shadow-sm";
+            document.getElementById('btn-40ft').className = type === '40ft' ? "flex flex-col items-center justify-center p-3 rounded-xl border-2 border-teal-500 bg-teal-50 text-teal-700 font-bold text-xs shadow-sm" : "flex flex-col items-center justify-center p-3 rounded-xl border-2 border-transparent bg-white text-slate-500 font-bold text-xs shadow-sm";
+
+            if (type === '20ft') {
+                currentContainer = { type: '20ft', length: 590, width: 235, height: 239, maxVol: 33.2 };
+            } else {
+                currentContainer = { type: '40ft', length: 1203, width: 235, height: 269, maxVol: 76.4 };
+            }
+            resetScene();
+            createContainerMesh();
+        };
+
+        // --- CONSTRUCTOR DE PALLET ---
+        function createPalletMesh(w, d) {
+            const palletNode = new BABYLON.TransformNode("pallet");
+            
+            const woodMat = new BABYLON.StandardMaterial("palletWood", scene);
+            woodMat.diffuseColor = new BABYLON.Color3(0.7, 0.6, 0.4);
+
+            const slatHeight = 2.5; 
+            const skidHeight = 10; 
+            
+            const deck = BABYLON.MeshBuilder.CreateBox("deck", {width: w, height: slatHeight, depth: d}, scene);
+            deck.position.y = skidHeight + (slatHeight/2);
+            deck.material = woodMat;
+            deck.parent = palletNode;
+
+            const skidWidth = Math.min(10, w/5);
+            const positions = [0, (w/2) - (skidWidth/2), -(w/2) + (skidWidth/2)];
+            
+            positions.forEach(posX => {
+                const skid = BABYLON.MeshBuilder.CreateBox("skid", {width: skidWidth, height: skidHeight, depth: d}, scene);
+                skid.position = new BABYLON.Vector3(posX, skidHeight/2, 0);
+                skid.material = woodMat;
+                skid.parent = palletNode;
+            });
+
+            return { mesh: palletNode, height: skidHeight + slatHeight };
+        }
+
+        // --- GENERADOR DE TEXTURA DE DIMENSIONES ---
+        function createDimensionTexture(l, w, h) {
+            const tex = new BABYLON.DynamicTexture("dimTex", {width:256, height:128}, scene);
+            const ctx = tex.getContext();
+            
+            // Fondo claro
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0,0,256,128);
+            
+            // Borde
+            ctx.strokeStyle = "#333333";
+            ctx.lineWidth = 6;
+            ctx.strokeRect(5,5,246,118);
+            
+            // Texto
+            ctx.fillStyle = "#000000";
+            ctx.font = "bold 34px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            
+            const text = `${l}x${w}x${h}cm`;
+            ctx.fillText(text, 128, 64);
+            
+            tex.update();
+            return tex;
+        }
+
+        // --- LÓGICA DE CARGA MEJORADA (APILAMIENTO) ---
+        window.addCargo = () => {
+            const l = parseFloat(document.getElementById('box-l').value);
+            const w = parseFloat(document.getElementById('box-w').value);
+            const h = parseFloat(document.getElementById('box-h').value);
+            const qty = parseInt(document.getElementById('box-qty').value);
+            const weight = parseFloat(document.getElementById('box-weight').value);
+            const colorHex = document.getElementById('box-color').value;
+            const usePallet = document.getElementById('use-pallet').checked;
+
+            if (l <= 0 || w <= 0 || h <= 0 || qty <= 0) {
+                alert("Dimensiones inválidas.");
+                return;
+            }
+
+            // Materiales
+            const boxMat = new BABYLON.StandardMaterial("boxMat", scene);
+            boxMat.diffuseColor = BABYLON.Color3.FromHexString(colorHex);
+            
+            // Textura con dimensiones
+            const labelTex = createDimensionTexture(l, w, h);
+            const labelMat = new BABYLON.StandardMaterial("labelMat", scene);
+            labelMat.diffuseTexture = labelTex;
+
+            const contW = currentContainer.width;
+            const contL = currentContainer.length;
+            const contH = currentContainer.height;
+
+            // Altura total del item (con o sin pallet)
+            // Si el usuario quiere pallet, lo ponemos como base de la unidad
+            const unitPalletHeight = usePallet ? 12.5 : 0; 
+            const unitHeight = h + unitPalletHeight;
+
+            for (let i = 0; i < qty; i++) {
+                
+                // 1. Verificar si cabe en la fila X
+                if (currentLoad.nextX + w > contW/2) {
+                    // Fin de fila -> Saltar a siguiente fila en Z
+                    currentLoad.nextX = -contW/2;
+                    currentLoad.nextZ += l;
+                }
+
+                // 2. Verificar si cabe en el piso Z
+                if (currentLoad.nextZ + l > contL/2) {
+                    // Fin de piso (Nivel completo) -> Subir Nivel Y
+                    currentLoad.nextX = -contW/2;
+                    currentLoad.nextZ = -contL/2;
+                    
+                    // Altura del nivel anterior (asumimos altura uniforme por lote para simplificar)
+                    // Si ya estamos en Y=0, subimos 'unitHeight'.
+                    // Si estamos arriba, sumamos la altura anterior.
+                    // Para mayor precisión, usamos la altura del item actual como referencia del nuevo nivel.
+                    
+                    // AQUÍ ESTÁ LA MAGIA DEL DIVISOR:
+                    // Si subimos de nivel, y NO estamos en el suelo, agregamos un "Separador" virtual (pallet)
+                    // En este código, si 'usePallet' está activo, cada caja YA tiene su pallet.
+                    // Si el usuario quiere un pallet SOLO al dividir niveles, ajustaremos la lógica.
+                    // Pero la solicitud dice "con un pallet que divida el nivel 1 y 2".
+                    // Esto se cumple automáticamente si cada unidad nueva tiene su base pallet.
+                    
+                    currentLoad.nextY += unitHeight; 
+                }
+
+                // 3. Verificar si cabe en altura Y
+                if (currentLoad.nextY + unitHeight > contH) {
+                    alert(`Contenedor lleno en altura. Cargadas ${i} de ${qty} cajas.`);
+                    break;
+                }
+
+                // --- CREACIÓN DEL OBJETO 3D ---
+                const group = new BABYLON.TransformNode("cargoUnit", scene);
+
+                // Agregar Pallet Base (Si está activo)
+                if (usePallet) {
+                    const palletObj = createPalletMesh(w, l);
+                    palletObj.mesh.parent = group;
+                    // El pallet ya tiene su altura interna
+                }
+
+                // Agregar Caja
+                const box = BABYLON.MeshBuilder.CreateBox("box", { width: w, height: h, depth: l }, scene);
+                box.material = boxMat;
+                box.position.y = unitPalletHeight + (h / 2);
+                box.parent = group;
+
+                // Agregar Etiqueta de Dimensiones (En 2 caras visibles)
+                // Cara Frontal (Z+)
+                const label1 = BABYLON.MeshBuilder.CreatePlane("lbl1", {width: w*0.8, height: h*0.5}, scene);
+                label1.parent = box;
+                label1.position.z = l/2 + 0.05;
+                label1.material = labelMat;
+
+                // Cara Lateral (X+)
+                const label2 = BABYLON.MeshBuilder.CreatePlane("lbl2", {width: l*0.8, height: h*0.5}, scene);
+                label2.parent = box;
+                label2.rotation.y = Math.PI/2;
+                label2.position.x = w/2 + 0.05;
+                label2.material = labelMat;
+                
+                // Bordes para definición
+                box.enableEdgesRendering();
+                box.edgesWidth = 1.0;
+                box.edgesColor = new BABYLON.Color4(0,0,0, 0.3);
+
+                // POSICIONAMIENTO FINAL
+                group.position.x = currentLoad.nextX + (w/2);
+                group.position.y = currentLoad.nextY;
+                group.position.z = currentLoad.nextZ + (l/2);
+
+                // Animación de Caída
+                const finalY = group.position.y;
+                group.position.y = contH + 50; // Empezar desde el cielo
+                
+                const anim = new BABYLON.Animation("drop", "position.y", 60, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+                const keys = [ { frame: 0, value: contH + 50 }, { frame: 30, value: finalY } ];
+                anim.setKeys(keys);
+                
+                const easing = new BABYLON.BounceEase();
+                easing.setEasingMode(BABYLON.EasingFunction.EASINGMODE_EASEOUT);
+                anim.setEasingFunction(easing);
+                group.animations.push(anim);
+                
+                // Pequeño delay para efecto cascada
+                setTimeout(() => scene.beginAnimation(group, 0, 30, false), i * 50);
+
+                cargoItems.push(group);
+
+                // Actualizar Stats
+                currentLoad.weight += weight + (usePallet ? 20 : 0);
+                const volItem = (l*w*h)/1000000;
+                currentLoad.volume += volItem;
+
+                // Avanzar cursor X
+                currentLoad.nextX += w;
+            }
+            
+            updateStats();
+        };
+
+        window.resetScene = () => {
+            cargoItems.forEach(m => m.dispose());
+            cargoItems = [];
+            
+            const wid = currentContainer.width;
+            const len = currentContainer.length;
+            
+            // Reset Punteros
+            currentLoad.nextX = -wid/2;
+            currentLoad.nextY = 0;
+            currentLoad.nextZ = -len/2;
+            currentLoad.volume = 0;
+            currentLoad.weight = 0;
+            
+            updateStats();
+        };
+
+        window.cameraReset = () => {
+            if(camera) {
+                camera.alpha = -Math.PI / 2;
+                camera.beta = Math.PI / 2.5;
+                camera.target = new BABYLON.Vector3(0, currentContainer.height/2, 0);
+            }
+        };
+
+        function updateStats() {
+            const volPct = (currentLoad.volume / currentContainer.maxVol) * 100;
+            document.getElementById('occupancy-display').innerText = volPct.toFixed(1) + "%";
+            
+            const el = document.getElementById('occupancy-display');
+            if(volPct < 80) el.className = "text-lg font-mono font-bold text-yellow-400";
+            else el.className = "text-lg font-mono font-bold text-teal-400"; // Verde si > 80%
+
+            document.getElementById('weight-display').innerText = currentLoad.weight.toLocaleString() + " kg";
+        }
+
+        const panel = document.getElementById('panel');
+        document.getElementById('panel-toggle-btn').addEventListener('click', () => {
+            panel.classList.toggle('-translate-x-full');
+            if(window.innerWidth < 768) {
+                if(panel.classList.contains('-translate-x-full')) panel.style.transform = 'translateX(-100%)';
+                else panel.style.transform = 'translateX(0)';
+            }
+        });
+        
+        document.getElementById('mobile-close-btn').addEventListener('click', () => {
+             panel.style.transform = 'translateX(-100%)';
+             panel.classList.add('-translate-x-full');
+        });
+
+        initBabylon();
+    </script>
+</body>
+</html>
