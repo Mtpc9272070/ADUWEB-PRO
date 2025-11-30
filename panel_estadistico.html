@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADUWEB | Analytics</title>
+    
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- 3. Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- 4. Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <!-- Configuración Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        indigo: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 900: '#312e81' },
+                        slate: { 850: '#1e293b' }
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'glow': '0 0 20px rgba(79, 70, 229, 0.2)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.4s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .stat-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-20 selection:bg-indigo-100 selection:text-indigo-800 min-h-screen">
+
+    <!-- ================= HEADER FIJO ================= -->
+    <header class="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-b border-slate-200 z-40 transition-all">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <button onclick="window.location.href='index.html'" class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors">
+                <i data-lucide="arrow-left" class="w-6 h-6 text-slate-600"></i>
+            </button>
+            
+            <div class="flex flex-col items-center">
+                <h1 class="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                    <span class="bg-gradient-to-r from-indigo-600 to-violet-600 text-transparent bg-clip-text">ADUWEB</span>
+                    <span class="text-slate-400 font-medium text-xs border border-slate-200 rounded px-1.5 py-0.5">ANALYTICS</span>
+                </h1>
+            </div>
+
+            <button class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-400">
+                <i data-lucide="share-2" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="h-20"></div>
+
+    <!-- ================= CONTENIDO PRINCIPAL ================= -->
+    <main class="max-w-5xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
+
+        <!-- 1. SELECTOR DE SESIÓN -->
+        <div class="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
+                    <i data-lucide="history" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-400 block uppercase">Historial de Simulaciones</label>
+                    <select id="room-selector" class="bg-transparent font-bold text-slate-800 text-sm focus:outline-none cursor-pointer w-full md:w-64">
+                        <option value="" disabled selected>Selecciona una sesión...</option>
+                        <!-- Opciones dinámicas -->
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex gap-2 w-full md:w-auto">
+                <button class="flex-1 md:flex-none px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 transition flex items-center justify-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4"></i> Exportar PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- CONTENEDOR DE DATOS (Oculto si no hay selección) -->
+        <div id="dashboard-content" class="hidden space-y-6">
+
+            <!-- 2. KPIs PRINCIPALES -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- Score -->
+                <div class="stat-card bg-white p-5 rounded-2xl border border-slate-100 shadow-soft">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
+                            <i data-lucide="target" class="w-4 h-4"></i>
+                        </div>
+                        <span class="text-xs font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">+12%</span>
+                    </div>
+                    <p class="text-slate-400 text-xs font-bold uppercase">Puntaje Final</p>
+                    <h3 class="text-2xl font-black text-slate-800" id="kpi-score">0</h3>
+                </div>
+
+                <!-- Tiempo -->
+                <div class="stat-card bg-white p-5 rounded-2xl border border-slate-100 shadow-soft">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                            <i data-lucide="clock" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-xs font-bold uppercase">Tiempo Total</p>
+                    <h3 class="text-2xl font-black text-slate-800" id="kpi-time">0m</h3>
+                </div>
+
+                <!-- Errores -->
+                <div class="stat-card bg-white p-5 rounded-2xl border border-slate-100 shadow-soft">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
+                            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-xs font-bold uppercase">Errores</p>
+                    <h3 class="text-2xl font-black text-slate-800" id="kpi-errors">0</h3>
+                </div>
+
+                <!-- Eficiencia -->
+                <div class="stat-card bg-white p-5 rounded-2xl border border-slate-100 shadow-soft">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                            <i data-lucide="zap" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-xs font-bold uppercase">Eficiencia</p>
+                    <h3 class="text-2xl font-black text-slate-800" id="kpi-efficiency">0%</h3>
+                </div>
+            </div>
+
+            <!-- 3. GRÁFICOS Y DETALLES -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- Gráfico de Radar (Habilidades) -->
+                <div class="md:col-span-1 bg-white p-6 rounded-3xl border border-slate-100 shadow-soft flex flex-col items-center">
+                    <h3 class="font-bold text-slate-800 mb-4 self-start flex items-center gap-2">
+                        <i data-lucide="users" class="w-4 h-4 text-indigo-500"></i> Balance del Equipo
+                    </h3>
+                    <div class="w-full h-64 relative">
+                        <canvas id="skillsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tabla de Resultados -->
+                <div class="md:col-span-2 bg-white p-6 rounded-3xl border border-slate-100 shadow-soft overflow-hidden">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i data-lucide="list" class="w-4 h-4 text-indigo-500"></i> Desglose por Participante
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-slate-400 uppercase bg-slate-50 border-b border-slate-100">
+                                <tr>
+                                    <th class="px-4 py-3 rounded-tl-lg">Participante</th>
+                                    <th class="px-4 py-3">Rol</th>
+                                    <th class="px-4 py-3 text-right">Base</th>
+                                    <th class="px-4 py-3 text-right text-green-600">Bonos</th>
+                                    <th class="px-4 py-3 text-right rounded-tr-lg">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="participants-table-body" class="text-slate-600">
+                                <!-- Filas dinámicas -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. SUGERENCIAS IA -->
+            <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 md:p-8 text-white shadow-glow relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                
+                <div class="relative z-10">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                            <i data-lucide="sparkles" class="w-3 h-3 text-white"></i>
+                        </div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-indigo-200">Análisis IA</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Informe de Desempeño</h3>
+                    <p id="ai-suggestion" class="text-indigo-100 text-sm leading-relaxed max-w-2xl">
+                        Cargando análisis inteligente de la operación...
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- EMPTY STATE (Inicial) -->
+        <div id="empty-state" class="text-center py-20 opacity-60">
+            <div class="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="bar-chart-2" class="w-10 h-10 text-slate-300"></i>
+            </div>
+            <h2 class="text-xl font-bold text-slate-800">Selecciona una Simulación</h2>
+            <p class="text-slate-400 text-sm mt-2">Elige una sesión del historial para ver el reporte detallado.</p>
+        </div>
+
+    </main>
+
+    <!-- SCRIPT LÓGICA -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+        import { getFirestore, collection, getDocs, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+        lucide.createIcons();
+
+        // Configuración Firebase
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        let chartInstance = null;
+        let allRoomsData = [];
+
+        // 1. Cargar Historial
+        async function loadHistory() {
+            const selector = document.getElementById('room-selector');
+            try {
+                // Fetch de 'completed_rooms' o 'rooms' dependiendo de tu estructura real
+                // Usaré 'public/data/completed_rooms' como estándar pro
+                const roomsRef = collection(db, 'artifacts', appId, 'public', 'data', 'completed_rooms');
+                const q = query(roomsRef, orderBy('endedAt', 'desc'), limit(10));
+                
+                const snapshot = await getDocs(q);
+                
+                if (snapshot.empty) {
+                    // Datos Demo si no hay reales
+                    loadDemoData();
+                    return;
+                }
+
+                allRoomsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                populateSelector(allRoomsData);
+
+            } catch (e) {
+                console.error("Error loading history:", e);
+                loadDemoData(); // Fallback a demo
+            }
+        }
+
+        function loadDemoData() {
+            allRoomsData = [
+                { 
+                    id: 'demo1', 
+                    roomName: 'Operación Alfa', 
+                    endedAt: new Date().toISOString(),
+                    final_score: 850,
+                    duration: 1800, // segundos
+                    errors: 2,
+                    final_result: 'success',
+                    participants: [
+                        { name: 'Juan', role: 'Importador', base: 100, bonus: 20, penalty: 0, final_score: 120 },
+                        { name: 'Ana', role: 'Agente', base: 100, bonus: 50, penalty: 0, final_score: 150 },
+                        { name: 'Pedro', role: 'Aduana', base: 100, bonus: 10, penalty: 5, final_score: 105 }
+                    ]
+                },
+                { 
+                    id: 'demo2', 
+                    roomName: 'Caso Textil B', 
+                    endedAt: new Date(Date.now() - 86400000).toISOString(),
+                    final_score: 620,
+                    duration: 2400,
+                    errors: 5,
+                    final_result: 'cost_overrun',
+                    participants: [
+                        { name: 'Luis', role: 'Importador', base: 80, bonus: 0, penalty: 10, final_score: 70 },
+                        { name: 'Maria', role: 'Logístico', base: 90, bonus: 10, penalty: 20, final_score: 80 }
+                    ]
+                }
+            ];
+            populateSelector(allRoomsData);
+        }
+
+        function populateSelector(data) {
+            const selector = document.getElementById('room-selector');
+            selector.innerHTML = '<option value="" disabled selected>Selecciona una sesión...</option>';
+            
+            data.forEach(room => {
+                const date = new Date(room.endedAt).toLocaleDateString();
+                const opt = document.createElement('option');
+                opt.value = room.id;
+                opt.innerText = `${room.roomName || 'Sesión'} (${date}) - ${room.final_score} pts`;
+                selector.appendChild(opt);
+            });
+
+            // Auto-seleccionar el primero
+            if(data.length > 0) {
+                selector.value = data[0].id;
+                renderDashboard(data[0].id);
+            }
+        }
+
+        // 2. Renderizar Dashboard
+        window.renderDashboard = (roomId) => {
+            const room = allRoomsData.find(r => r.id === roomId);
+            if (!room) return;
+
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('dashboard-content').classList.remove('hidden');
+            document.getElementById('dashboard-content').classList.add('animate-slide-up');
+
+            // KPIs
+            document.getElementById('kpi-score').innerText = room.final_score;
+            document.getElementById('kpi-time').innerText = Math.floor(room.duration / 60) + 'm';
+            document.getElementById('kpi-errors').innerText = room.errors || 0;
+            
+            // Eficiencia (Calculada simple)
+            const maxScore = 1000; 
+            const eff = Math.min(100, Math.round((room.final_score / maxScore) * 100));
+            document.getElementById('kpi-efficiency').innerText = eff + '%';
+
+            // Tabla
+            const tbody = document.getElementById('participants-table-body');
+            tbody.innerHTML = '';
+            
+            // Datos para gráfico
+            const labels = [];
+            const dataScores = [];
+
+            if (room.participants) {
+                room.participants.forEach(p => {
+                    labels.push(p.role || p.name); // Usar Rol o Nombre
+                    dataScores.push(p.final_score);
+
+                    const row = `
+                        <tr class="border-b border-slate-50 last:border-0 hover:bg-slate-50 transition">
+                            <td class="px-4 py-3 font-bold text-slate-700">${p.name || 'Anónimo'}</td>
+                            <td class="px-4 py-3">
+                                <span class="text-[10px] font-bold uppercase bg-indigo-50 text-indigo-600 px-2 py-1 rounded">${p.role || 'General'}</span>
+                            </td>
+                            <td class="px-4 py-3 text-right text-slate-500">${p.base || 0}</td>
+                            <td class="px-4 py-3 text-right text-green-600 font-bold">+${p.bonus || 0}</td>
+                            <td class="px-4 py-3 text-right font-black text-slate-800">${p.final_score || 0}</td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            }
+
+            // Renderizar Gráfico
+            renderChart(labels, dataScores);
+
+            // Sugerencia
+            generateFeedback(room);
+        };
+
+        function renderChart(labels, data) {
+            const ctx = document.getElementById('skillsChart').getContext('2d');
+            
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels.length ? labels : ['N/A'],
+                    datasets: [{
+                        label: 'Desempeño por Rol',
+                        data: data.length ? data : [0],
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)', // Indigo-500 alpha
+                        borderColor: '#6366f1',
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#6366f1',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9' }, // slate-100
+                            pointLabels: {
+                                font: { size: 10, family: 'Inter', weight: 'bold' },
+                                color: '#64748b' // slate-500
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function generateFeedback(room) {
+            const el = document.getElementById('ai-suggestion');
+            let msg = "";
+
+            if (room.final_result === 'success') {
+                msg = "¡Excelente operación! El equipo demostró gran coordinación. Los tiempos de despacho fueron óptimos. Para mejorar aún más, intenten reducir los errores menores en la documentación.";
+            } else if (room.final_result === 'cost_overrun') {
+                msg = "Se detectaron sobrecostos. Se recomienda revisar la estrategia de valoración aduanera y selección de transporte. El rol de 'Logístico' debe priorizar rutas más eficientes.";
+            } else {
+                msg = "La operación tuvo dificultades. Es crucial repasar la normativa aduanera (Decreto 1165) antes de la próxima simulación. Presten atención a las alertas de la autoridad.";
+            }
+            el.innerText = msg;
+        }
+
+        // Listener
+        document.getElementById('room-selector').addEventListener('change', (e) => {
+            renderDashboard(e.target.value);
+        });
+
+        // Init
+        loadHistory();
+
+    </script>
+</body>
+</html>

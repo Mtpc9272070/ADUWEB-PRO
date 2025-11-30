@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calculadora de Peso Volumétrico | ADUWEB</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        emerald: { 500: '#10b981' },
+                        slate: { 850: '#1e293b' },
+                        teal: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 900: '#134e4a' },
+                        amber: { 600: '#d97706' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-20 min-h-screen">
+
+    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-lg">
+        <div class="max-w-md mx-auto px-4 py-4 flex items-center gap-4">
+            <button onclick="window.history.back()" class="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            </button>
+            <div>
+                <h1 class="font-black text-lg tracking-tight flex items-center gap-2">
+                    <i data-lucide="box" class="w-5 h-5 text-teal-400"></i>
+                    Peso Volumétrico
+                </h1>
+                <p class="text-xs text-slate-400">Calculadora Aérea / Marítima</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 py-6 space-y-6">
+
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <h2 class="font-bold text-lg mb-4 text-teal-700 flex items-center gap-2">
+                <i data-lucide="ruler" class="w-5 h-5"></i>
+                Dimensiones del Paquete
+            </h2>
+
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label for="inputLargo" class="block text-xs font-bold text-slate-400 uppercase mb-1">Largo (cm)</label>
+                    <input type="number" id="inputLargo" value="50" min="1" oninput="VolumetricLogic.calculate()"
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl block p-3 transition-all font-medium">
+                </div>
+                <div>
+                    <label for="inputAncho" class="block text-xs font-bold text-slate-400 uppercase mb-1">Ancho (cm)</label>
+                    <input type="number" id="inputAncho" value="40" min="1" oninput="VolumetricLogic.calculate()"
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl block p-3 transition-all font-medium">
+                </div>
+                <div>
+                    <label for="inputAlto" class="block text-xs font-bold text-slate-400 uppercase mb-1">Alto (cm)</label>
+                    <input type="number" id="inputAlto" value="30" min="1" oninput="VolumetricLogic.calculate()"
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl block p-3 transition-all font-medium">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                    <label for="inputPiezas" class="block text-xs font-bold text-slate-400 uppercase mb-1">Cantidad de Piezas</label>
+                    <input type="number" id="inputPiezas" value="1" min="1" oninput="VolumetricLogic.calculate()"
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl block p-3 transition-all font-medium">
+                </div>
+                <div>
+                    <label for="inputMode" class="block text-xs font-bold text-slate-400 uppercase mb-1">Modo de Transporte</label>
+                    <select id="inputMode" onchange="VolumetricLogic.calculate()"
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl block p-3 transition-all font-medium">
+                        <option value="AIR_EXPRESS">Aéreo Express (Div. 5000)</option>
+                        <option value="AIR_STANDARD" selected>Aéreo Estándar (Div. 6000)</option>
+                        <option value="SEA">Marítimo (CBM/1000)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <label for="inputPesoBruto" class="block text-xs font-bold text-slate-400 uppercase mb-1">Peso Bruto Total (kg)</label>
+                <input type="number" id="inputPesoBruto" value="12" min="1" oninput="VolumetricLogic.calculate()"
+                    class="w-full bg-white border border-slate-200 text-slate-800 text-lg rounded-xl block p-3 transition-all font-black border-l-4 border-emerald-500">
+            </div>
+
+            <p class="text-[10px] text-slate-400 mt-3 text-center">
+                <i data-lucide="alert-triangle" class="w-3 h-3 inline mr-1 text-amber-500"></i>
+                El costo se facturará al mayor valor (Peso Bruto vs. Volumétrico).
+            </p>
+        </div>
+
+        <div id="resultsArea" class="space-y-6 animate-fade-in">
+            
+            <div class="bg-teal-600 text-white p-6 rounded-3xl shadow-xl border-l-4 border-teal-300">
+                <span class="text-xs font-medium text-teal-200 uppercase tracking-widest block mb-1">Peso Facturable (Charging Weight)</span>
+                <p class="text-5xl font-extrabold tracking-tighter" id="resChargingWeight">0.0 kg</p>
+                <p class="text-sm font-medium text-teal-200 mt-2" id="resBillingBasis"></p>
+                
+                <div class="mt-4 flex justify-between pt-4 border-t border-teal-500">
+                    <div>
+                        <span class="text-xs font-medium text-teal-200 uppercase block">Peso Volumétrico</span>
+                        <p class="text-3xl font-extrabold mt-1" id="resVolumetricWeight">0.0 kg</p>
+                    </div>
+                    <div>
+                        <span class="text-xs font-medium text-teal-200 uppercase block">Volumen Total</span>
+                        <p class="text-3xl font-extrabold mt-1" id="resCBM">0.0 m³</p>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="font-bold text-lg text-slate-700 mt-6 flex items-center gap-2">
+                <i data-lucide="zap" class="w-5 h-5 text-amber-600"></i>
+                Factores de Cálculo
+            </h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-center">
+                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Divisor Utilizado</span>
+                    <span class="block text-xl font-black text-slate-800" id="resDivisor">0</span>
+                    <span class="block text-[10px] text-slate-400">cm³ / kg</span>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-center border-l-4 border-amber-300">
+                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Volumen Bruto (cm³)</span>
+                    <span class="block text-xl font-black text-amber-600" id="resVolumeCM">0</span>
+                    <span class="block text-[10px] text-slate-400">cm³</span>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // ----------------------------------------------------
+        // LÓGICA DE CÁLCULO DE PESO VOLUMÉTRICO
+        // ----------------------------------------------------
+
+        // Definición de divisores por modo de transporte (valores comunes de la industria)
+        const DIVISORS = {
+            AIR_EXPRESS: 5000, // Comúnmente usado por couriers y fletes express
+            AIR_STANDARD: 6000, // Estándar IATA (para flete aéreo regular)
+            SEA: 1000 // Para convertir CBM a Peso Volumétrico (1 CBM = 1000 kg)
+        };
+
+        const VolumetricLogic = {
+            
+            calculate: function() {
+                // 1. Obtener Inputs
+                const L = parseFloat(document.getElementById('inputLargo').value) || 0;
+                const W = parseFloat(document.getElementById('inputAncho').value) || 0;
+                const H = parseFloat(document.getElementById('inputAlto').value) || 0;
+                const pieces = parseInt(document.getElementById('inputPiezas').value) || 1;
+                const mode = document.getElementById('inputMode').value;
+                const grossWeight = parseFloat(document.getElementById('inputPesoBruto').value) || 0;
+                
+                // Elementos de Resultado
+                const resChargingWeight = document.getElementById('resChargingWeight');
+                const resVolumetricWeight = document.getElementById('resVolumetricWeight');
+                const resCBM = document.getElementById('resCBM');
+                const resDivisor = document.getElementById('resDivisor');
+                const resVolumeCM = document.getElementById('resVolumeCM');
+                const resBillingBasis = document.getElementById('resBillingBasis');
+
+                if (L <= 0 || W <= 0 || H <= 0) {
+                    // Limpiar y salir si no hay dimensiones válidas
+                    resChargingWeight.innerText = "N/A kg";
+                    resVolumetricWeight.innerText = "0.0 kg";
+                    resCBM.innerText = "0.0 m³";
+                    resBillingBasis.innerText = "Ingrese dimensiones para calcular.";
+                    resDivisor.innerText = "N/A";
+                    resVolumeCM.innerText = "0";
+                    return;
+                }
+
+                // 2. Cálculo de Volumen Total
+                const totalVolumeCM3 = (L * W * H) * pieces;
+                const totalVolumeM3 = totalVolumeCM3 / 1000000;
+                
+                // 3. Determinación del Divisor
+                const divisor = DIVISORS[mode];
+                
+                let volumetricWeight;
+                let billingBasisText;
+
+                if (mode === 'SEA') {
+                    // En marítimo, el Peso Volumétrico es 1 CBM = 1000 kg
+                    volumetricWeight = totalVolumeM3 * 1000;
+                    resDivisor.innerText = '1000 (CBM)';
+                } else {
+                    // Aéreo: (L*W*H*Piezas) / Divisor
+                    volumetricWeight = totalVolumeCM3 / divisor;
+                    resDivisor.innerText = divisor;
+                }
+                
+                // Redondear pesos a dos decimales
+                volumetricWeight = Math.round(volumetricWeight * 100) / 100;
+                
+                // 4. Determinar Peso Facturable (el mayor)
+                const chargingWeight = Math.max(grossWeight, volumetricWeight);
+
+                if (chargingWeight === grossWeight) {
+                    billingBasisText = "Base de Facturación: PESO BRUTO";
+                } else {
+                    billingBasisText = "Base de Facturación: PESO VOLUMÉTRICO";
+                }
+
+                // 5. Renderizar Resultados
+                const formatWeight = (w) => new Intl.NumberFormat('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(w);
+                const formatVolume = (v) => new Intl.NumberFormat('es-CO', { minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(v);
+                
+                resChargingWeight.innerText = `${formatWeight(chargingWeight)} kg`;
+                resVolumetricWeight.innerText = `${formatWeight(volumetricWeight)} kg`;
+                resCBM.innerText = `${formatVolume(totalVolumeM3)} m³`;
+                resVolumeCM.innerText = new Intl.NumberFormat('es-CO').format(totalVolumeCM3);
+                resBillingBasis.innerText = billingBasisText;
+            }
+        };
+
+        // Ejecutar al cargar para mostrar el estado inicial
+        document.addEventListener('DOMContentLoaded', () => {
+            VolumetricLogic.calculate();
+        });
+    </script>
+</body>
+</html>

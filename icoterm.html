@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Analizador de Incoterms | ADUWEB</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        emerald: { 50: '#ecfdf5', 500: '#10b981', 600: '#059669' },
+                        slate: { 850: '#1e293b' },
+                        teal: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 900: '#134e4a' },
+                        indigo: { 600: '#4f46e5' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Estilo para simular el riesgo (línea de transferencia) */
+        .risk-line {
+            height: 4px;
+            background: linear-gradient(to right, #10b981 50%, #f97316 50%); /* Emerald to Orange */
+            border-radius: 9999px;
+            position: relative;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-20 min-h-screen">
+
+    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-lg">
+        <div class="max-w-md mx-auto px-4 py-4 flex items-center gap-4">
+            <button onclick="window.history.back()" class="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            </button>
+            <div>
+                <h1 class="font-black text-lg tracking-tight flex items-center gap-2">
+                    <i data-lucide="ship-wheel" class="w-5 h-5 text-teal-400"></i>
+                    Analizador de Incoterms
+                </h1>
+                <p class="text-xs text-slate-400">Calcula costos, riesgos y obligaciones</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 py-6 space-y-6">
+
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <h2 class="font-bold text-lg mb-4 text-teal-700 flex items-center gap-2">
+                <i data-lucide="settings-2" class="w-5 h-5"></i>
+                Configuración de la Operación
+            </h2>
+
+            <div>
+                <label for="incotermSelect" class="block text-xs font-bold text-slate-400 uppercase mb-2">Seleccionar Incoterm (2020)</label>
+                <select id="incotermSelect" 
+                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block p-4 transition-all font-medium" 
+                    onchange="simulateIncoterm()">
+                    <option value="" disabled selected>— Seleccione una regla —</option>
+                    <option value="EXW">EXW - En Fábrica</option>
+                    <option value="FOB">FOB - Libre a Bordo (Mar/Vías)</option>
+                    <option value="CIF">CIF - Costo, Seguro y Flete (Mar/Vías)</option>
+                    <option value="DDP">DDP - Entregado Derechos Pagados</option>
+                    <option value="DAP">DAP - Entregado en Lugar</option>
+                </select>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mt-5">
+                <div>
+                    <label for="valMercancia" class="block text-xs font-bold text-slate-400 uppercase mb-1">Valor FOB / FCA (USD)</label>
+                    <input type="number" id="valMercancia" value="10000" oninput="simulateIncoterm()"
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl block p-3 transition-all font-medium">
+                </div>
+                <div>
+                    <label for="costeFlete" class="block text-xs font-bold text-slate-400 uppercase mb-1">Costo Flete Principal</label>
+                    <input type="number" id="costeFlete" value="1500" oninput="simulateIncoterm()"
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl block p-3 transition-all font-medium">
+                </div>
+                <div>
+                    <label for="costeSeguro" class="block text-xs font-bold text-slate-400 uppercase mb-1">Costo Seguro (Si aplica)</label>
+                    <input type="number" id="costeSeguro" value="100" oninput="simulateIncoterm()"
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl block p-3 transition-all font-medium">
+                </div>
+                <div>
+                    <label for="costeArancel" class="block text-xs font-bold text-slate-400 uppercase mb-1">Arancel Estimado (%)</label>
+                    <input type="number" id="costeArancel" value="5" oninput="simulateIncoterm()"
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl block p-3 transition-all font-medium">
+                </div>
+            </div>
+
+            <button onclick="simulateIncoterm()" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-200 transition-colors flex items-center justify-center gap-2">
+                ANALIZAR DISTRIBUCIÓN
+                <i data-lucide="arrow-right-circle" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <div id="resultsArea" class="hidden space-y-6 animate-fade-in">
+            
+            <div class="bg-indigo-600 text-white p-6 rounded-3xl shadow-xl border-l-4 border-indigo-300">
+                <span class="text-xs font-medium text-indigo-200 uppercase tracking-widest" id="resIncotermName"></span>
+                <h3 class="text-xl font-black mt-1">Valor Total de la Carga</h3>
+                <p class="text-4xl font-extrabold mt-1" id="resTotalValue">$0.00</p>
+                <p class="text-sm text-indigo-200 mt-2" id="resDefinition"></p>
+
+                <div class="mt-6 pt-4 border-t border-indigo-500">
+                    <span class="text-xs font-medium text-indigo-300 uppercase block mb-2">Punto de Transferencia de Riesgo</span>
+                    <div class="risk-line mb-2">
+                        <div id="riskPoint" class="w-3 h-3 bg-white rounded-full absolute -top-1 -ml-1 shadow-lg border-2 border-orange-500 transition-all duration-700" style="left: 0%;"></div>
+                    </div>
+                    <div class="flex justify-between text-xs font-bold">
+                        <span class="text-emerald-300">Vendedor (S)</span>
+                        <span class="text-orange-300">Comprador (B)</span>
+                    </div>
+                    <p class="text-xs text-white/80 mt-2" id="resRiskLocation"></p>
+                </div>
+            </div>
+
+            <h2 class="font-bold text-lg text-slate-700 mt-6">Detalle de Responsabilidades</h2>
+            
+            <div class="grid grid-cols-2 gap-4">
+                
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i data-lucide="package" class="w-4 h-4 text-emerald-600 fill-emerald-100"></i>
+                        <h3 class="font-bold text-emerald-600 text-sm">VENDEDOR PAGA</h3>
+                    </div>
+                    <ul class="space-y-1 text-xs text-slate-600" id="resSellerPays">
+                        </ul>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-orange-100">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i data-lucide="briefcase" class="w-4 h-4 text-orange-600 fill-orange-100"></i>
+                        <h3 class="font-bold text-orange-600 text-sm">COMPRADOR PAGA</h3>
+                    </div>
+                    <ul class="space-y-1 text-xs text-slate-600" id="resBuyerPays">
+                        </ul>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // ----------------------------------------------------
+        // LÓGICA DE SIMULACIÓN DE INCOTERMS
+        // ----------------------------------------------------
+
+        // Definiciones clave (simplificadas para el simulador)
+        const INCOTERM_RULES = {
+            EXW: {
+                name: "EXW (Ex Works)",
+                definition: "El vendedor sólo pone la mercancía a disposición en su fábrica. El comprador asume casi todo el riesgo y costo.",
+                risk_point: 0, // 0% del camino (fábrica)
+                seller_costs: ["Embalaje", "Revisión de Calidad"],
+                buyer_costs: ["Carga en fábrica", "Transporte local", "Flete principal", "Seguro", "Despacho de Exportación/Importación", "Arancel", "IVA"],
+            },
+            FOB: {
+                name: "FOB (Free On Board)",
+                definition: "El riesgo se transfiere cuando la mercancía cruza la borda del buque en el puerto de carga. Costo base para aduana.",
+                risk_point: 25, // 25% del camino (Puerto de carga)
+                seller_costs: ["Embalaje", "Transporte local a puerto", "Gastos en puerto", "Despacho de Exportación"],
+                buyer_costs: ["Flete principal", "Seguro", "Gastos en puerto de descarga", "Despacho de Importación", "Arancel", "IVA"],
+            },
+            CIF: {
+                name: "CIF (Cost, Insurance, and Freight)",
+                definition: "El vendedor paga el costo, el flete y el seguro hasta el puerto de destino. El riesgo se transfiere en el puerto de carga.",
+                risk_point: 25, // 25% del camino (Puerto de carga)
+                seller_costs: ["Embalaje", "Transporte local", "Flete principal", "Seguro (mínimo)", "Despacho de Exportación"],
+                buyer_costs: ["Gastos en puerto de destino", "Transporte final", "Despacho de Importación", "Arancel", "IVA"],
+            },
+            DAP: {
+                name: "DAP (Delivered at Place)",
+                definition: "El vendedor entrega la mercancía en el lugar convenido de destino, listo para descargar. El comprador paga el despacho de importación.",
+                risk_point: 90, // 90% del camino (Lugar de destino)
+                seller_costs: ["Embalaje", "Transporte local", "Flete principal", "Seguro", "Despacho de Exportación", "Transporte final"],
+                buyer_costs: ["Descarga en destino", "Despacho de Importación", "Arancel", "IVA"],
+            },
+            DDP: {
+                name: "DDP (Delivered Duty Paid)",
+                definition: "El vendedor asume todos los riesgos y costos hasta el destino final, incluyendo aranceles e impuestos.",
+                risk_point: 100, // 100% del camino (Destino final)
+                seller_costs: ["Embalaje", "Transporte local", "Flete principal", "Seguro", "Despacho de Exportación/Importación", "Arancel", "IVA", "Transporte final"],
+                buyer_costs: ["Descarga en destino", "Costos de almacenamiento (si aplica)"],
+            }
+        };
+
+        function simulateIncoterm() {
+            const incotermCode = document.getElementById('incotermSelect').value;
+            const valMercancia = parseFloat(document.getElementById('valMercancia').value) || 0;
+            const costeFlete = parseFloat(document.getElementById('costeFlete').value) || 0;
+            const costeSeguro = parseFloat(document.getElementById('costeSeguro').value) || 0;
+            const costeArancel = parseFloat(document.getElementById('costeArancel').value) / 100 || 0;
+            
+            const resultsArea = document.getElementById('resultsArea');
+            if (!incotermCode) {
+                resultsArea.classList.add('hidden');
+                return;
+            }
+
+            const rule = INCOTERM_RULES[incotermCode];
+            let totalValue = valMercancia; // Valor FOB/FCA base
+
+            // Cálculo simulado del valor total (Total Costos Asumidos por la Carga)
+            if (['CIF', 'DAP', 'DDP'].includes(incotermCode)) {
+                totalValue += costeFlete;
+            }
+            if (['CIF', 'CIP', 'DAP', 'DDP'].includes(incotermCode)) {
+                totalValue += costeSeguro;
+            }
+            if (incotermCode === 'DDP') {
+                // Cálculo simple de arancel e IVA sobre la base CIF/FOB + Flete
+                const arancel = (valMercancia + costeFlete + costeSeguro) * costeArancel;
+                const iva = (valMercancia + costeFlete + costeSeguro + arancel) * 0.19;
+                totalValue += arancel + iva;
+            }
+
+
+            // Renderizar la Tarjeta Principal
+            document.getElementById('resIncotermName').innerText = rule.name;
+            document.getElementById('resDefinition').innerText = rule.definition;
+            document.getElementById('resTotalValue').innerText = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalValue);
+            
+            // Renderizar el Riesgo
+            document.getElementById('riskPoint').style.left = `${rule.risk_point}%`;
+            document.getElementById('resRiskLocation').innerText = `Riesgo transferido al ${rule.risk_point}% del trayecto.`;
+
+            // Renderizar la tabla de responsabilidades
+            const formatObligations = (obligations) => 
+                obligations.map(item => `
+                    <li class="flex items-center gap-2">
+                        <i data-lucide="check" class="w-3 h-3 text-emerald-500 flex-shrink-0"></i>
+                        <span>${item}</span>
+                    </li>
+                `).join('');
+
+            document.getElementById('resSellerPays').innerHTML = formatObligations(rule.seller_costs);
+            document.getElementById('resBuyerPays').innerHTML = formatObligations(rule.buyer_costs);
+
+
+            // Mostrar resultados
+            resultsArea.classList.remove('hidden');
+            lucide.createIcons(); // Vuelve a renderizar los iconos Lucide dinámicos
+        }
+
+        // Ejecutar la simulación al cargar para mostrar el estado inicial
+        document.addEventListener('DOMContentLoaded', () => {
+             // Ocultar resultados hasta que el usuario seleccione algo
+             document.getElementById('resultsArea').classList.add('hidden');
+             lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

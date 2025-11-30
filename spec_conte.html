@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Specs Contenedor | ADUWEB</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        emerald: { 500: '#10b981' },
+                        slate: { 850: '#1e293b' },
+                        teal: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 900: '#134e4a' },
+                        indigo: { 600: '#4f46e5' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-20 min-h-screen">
+
+    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-lg">
+        <div class="max-w-md mx-auto px-4 py-4 flex items-center gap-4">
+            <button onclick="window.history.back()" class="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            </button>
+            <div>
+                <h1 class="font-black text-lg tracking-tight flex items-center gap-2">
+                    <i data-lucide="container" class="w-5 h-5 text-teal-400"></i>
+                    Specs Contenedor
+                </h1>
+                <p class="text-xs text-slate-400">Medidas y capacidades TEU/FEU</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 py-6 space-y-6">
+
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <label for="containerSelect" class="block text-xs font-bold text-slate-400 uppercase mb-2">Tipo de Contenedor</label>
+            <select id="containerSelect" 
+                class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 block p-4 transition-all font-medium" 
+                onchange="ContainerSpecsLogic.showSpecs()">
+                <option value="" disabled selected>— Seleccione un contenedor —</option>
+                <option value="20DV">20' DRY VAN (Estándar)</option>
+                <option value="40DV">40' DRY VAN (Estándar)</option>
+                <option value="40HC">40' HIGH CUBE (HC)</option>
+                <option value="20RF">20' REEFER (Refrigerado)</option>
+                <option value="40RF">40' REEFER (Refrigerado)</option>
+            </select>
+            
+            <p class="text-[10px] text-slate-400 mt-3 text-center">
+                <i data-lucide="scale" class="w-3 h-3 inline mr-1"></i>
+                Valores de referencia estandarizados ISO.
+            </p>
+        </div>
+
+        <div id="resultsArea" class="hidden space-y-6 animate-fade-in">
+            
+            <div class="bg-teal-600 text-white p-6 rounded-3xl shadow-xl border-l-4 border-teal-300">
+                <span class="text-xs font-medium text-teal-200 uppercase tracking-widest" id="resType"></span>
+                <h3 class="text-2xl font-black mt-1 flex items-baseline gap-2">
+                    <span id="resSize"></span>
+                    <span class="text-xs font-medium text-teal-200" id="resCode"></span>
+                </h3>
+
+                <div class="mt-4 flex justify-between items-end pt-4 border-t border-teal-500">
+                    <div>
+                        <span class="text-xs font-medium text-teal-200 uppercase block">Capacidad Unit.</span>
+                        <p class="text-4xl font-extrabold mt-1" id="resTEU">0 TEU</p>
+                    </div>
+                    <div>
+                        <span class="text-xs font-medium text-teal-200 uppercase block">Volumen Bruto (CBM)</span>
+                        <p class="text-3xl font-extrabold" id="resVolume">0.0 m³</p>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="font-bold text-lg text-slate-700 mt-6 flex items-center gap-2">
+                <i data-lucide="maximize-2" class="w-5 h-5 text-indigo-500"></i>
+                Dimensiones Interiores (m)
+            </h2>
+            <div class="grid grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-center">
+                    <i data-lucide="ruler" class="w-5 h-5 text-indigo-500 mb-2"></i>
+                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Largo</span>
+                    <span class="block text-xl font-black text-slate-800" id="resLargo">0.0</span>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-center">
+                    <i data-lucide="maximize" class="w-5 h-5 text-indigo-500 mb-2"></i>
+                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Ancho</span>
+                    <span class="block text-xl font-black text-slate-800" id="resAncho">0.0</span>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-center">
+                    <i data-lucide="align-vertical" class="w-5 h-5 text-indigo-500 mb-2"></i>
+                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Alto</span>
+                    <span class="block text-xl font-black text-slate-800" id="resAlto">0.0</span>
+                </div>
+            </div>
+
+            <h2 class="font-bold text-lg text-slate-700 mt-6 flex items-center gap-2">
+                <i data-lucide="weight" class="w-5 h-5 text-emerald-500"></i>
+                Pesos y Carga (kg)
+            </h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-center">
+                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Peso TARA (Vacío)</span>
+                    <span class="block text-xl font-black text-slate-800" id="resTara">0</span>
+                    <span class="block text-[10px] text-slate-400">kg</span>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 text-center border-l-4 border-emerald-300">
+                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Carga Máxima (Payload)</span>
+                    <span class="block text-xl font-black text-emerald-600" id="resPayload">0</span>
+                    <span class="block text-[10px] text-slate-400">kg</span>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // ----------------------------------------------------
+        // MOCK DATA DE ESPECIFICACIONES DE CONTENEDORES
+        // ----------------------------------------------------
+        const CONTAINER_SPECS_DB = {
+            "20DV": {
+                type: "Dry Van Estándar",
+                size: "20 Pies",
+                code: "22G1 (1 TEU)",
+                teu: 1,
+                payload: 28230,
+                tare: 2340,
+                largo: 5.898,
+                ancho: 2.352,
+                alto: 2.393,
+                volume: 33.2
+            },
+            "40DV": {
+                type: "Dry Van Estándar",
+                size: "40 Pies",
+                code: "42G1 (2 TEU/1 FEU)",
+                teu: 2,
+                payload: 26500,
+                tare: 3750,
+                largo: 12.032,
+                ancho: 2.352,
+                alto: 2.393,
+                volume: 67.7
+            },
+            "40HC": {
+                type: "High Cube (Extra Alto)",
+                size: "40 Pies",
+                code: "45G1 (2 TEU/1 FEU)",
+                teu: 2,
+                payload: 26630,
+                tare: 3900,
+                largo: 12.032,
+                ancho: 2.350,
+                alto: 2.698,
+                volume: 76.0
+            },
+            "20RF": {
+                type: "Reefer (Refrigerado)",
+                size: "20 Pies",
+                code: "22R1 (1 TEU)",
+                teu: 1,
+                payload: 27200,
+                tare: 3000,
+                largo: 5.456,
+                ancho: 2.294,
+                alto: 2.276,
+                volume: 28.3
+            },
+            "40RF": {
+                type: "Reefer (Refrigerado)",
+                size: "40 Pies",
+                code: "42R1 (2 TEU/1 FEU)",
+                teu: 2,
+                payload: 27700,
+                tare: 4300,
+                largo: 11.590,
+                ancho: 2.290,
+                alto: 2.509,
+                volume: 60.0
+            }
+        };
+
+        const ContainerSpecsLogic = {
+            
+            showSpecs: function() {
+                const selectedCode = document.getElementById('containerSelect').value;
+                const resultsArea = document.getElementById('resultsArea');
+
+                if (!selectedCode) {
+                    resultsArea.classList.add('hidden');
+                    return;
+                }
+
+                const data = CONTAINER_SPECS_DB[selectedCode];
+                if (!data) {
+                    resultsArea.classList.add('hidden');
+                    return;
+                }
+                
+                // Formateadores para números
+                const numFormat = (num) => new Intl.NumberFormat('es-CO', { minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(num);
+                const weightFormat = (num) => new Intl.NumberFormat('es-CO').format(num);
+
+                // 1. Tarjeta Principal (TEU/FEU, Volumen)
+                document.getElementById('resType').innerText = data.type.toUpperCase();
+                document.getElementById('resSize').innerText = data.size;
+                document.getElementById('resCode').innerText = data.code;
+                document.getElementById('resTEU').innerText = `${data.teu} TEU`;
+                document.getElementById('resVolume').innerText = `${numFormat(data.volume)} m³`;
+
+                // 2. Dimensiones Interiores
+                document.getElementById('resLargo').innerText = numFormat(data.largo);
+                document.getElementById('resAncho').innerText = numFormat(data.ancho);
+                document.getElementById('resAlto').innerText = numFormat(data.alto);
+
+                // 3. Pesos
+                document.getElementById('resTara').innerText = weightFormat(data.tare);
+                document.getElementById('resPayload').innerText = weightFormat(data.payload);
+
+                resultsArea.classList.remove('hidden');
+                lucide.createIcons(); // Asegurar que los iconos se rendericen si cambian
+            }
+        };
+
+        // Exponer globalmente y ocultar al cargar
+        window.ContainerSpecsLogic = ContainerSpecsLogic;
+        document.addEventListener('DOMContentLoaded', () => {
+             document.getElementById('resultsArea').classList.add('hidden');
+        });
+    </script>
+</body>
+</html>

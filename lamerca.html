@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">Dashboard de Simulación - ADUWEB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        /* Estilo para la tarjeta de Tarea Activa */
+        .mission-card {
+            @apply bg-white p-6 rounded-xl shadow-2xl border-l-4 border-gray-400 transition duration-300;
+        }
+        .mission-card.active {
+            /* Estilo cuando es el turno del jugador */
+            @apply border-green-600 ring-4 ring-green-200;
+        }
+
+        /* --- Estilos para el mini-juego de voltear cartas --- */
+        @keyframes slot-machine-text {
+            0% { transform: translateY(-100%); opacity: 0; }
+            20%, 80% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(100%); opacity: 0; }
+        }
+        .slot-text { animation: slot-machine-text 0.2s ease-in-out; }
+
+        .flip-card-container {
+            background-color: transparent;
+            width: 128px;
+            height: 176px;
+            perspective: 1000px;
+        }
+        .flip-card-inner {
+            position: relative; width: 100%; height: 100%;
+            transition: transform 0.6s; transform-style: preserve-3d;
+        }
+        .flip-card-container.is-flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            -webkit-backface-visibility: hidden; backface-visibility: hidden;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .flip-card-front {
+            background-color: #1f2937;
+            background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23374151' fill-opacity='0.4' fill-rule='evenodd'%3E%3Cpath d='M0 0h20v1H0zM0 4h20v1H0zM0 8h20v1H0zM0 12h20v1H0zM0 16h20v1H0z'/%3E%3Cpath d='M0 0h1v20H0zM4 0h1v20H4zM8 0h1v20H8zM12 0h1v20H12zM16 0h1v20H16z'/%3E%3C/g%3E%3C/svg%3E");
+            color: white; cursor: pointer;
+        }
+        .flip-card-back {
+            transform: rotateY(180deg);
+            @apply bg-white text-gray-800 p-2 relative;
+        }
+        .card-code { @apply font-mono font-bold text-sm absolute; }
+        .top-left { @apply top-2 left-3; }
+        .bottom-right { @apply bottom-2 right-3 transform rotate-180; }
+        .card-icon { @apply text-4xl text-gray-300; }
+        .flip-card-container.selected { filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.7)); }
+
+        /* --- Animación de Barajado --- */
+        @keyframes dealCard {
+            from { transform: translate(0, 0) scale(0.5) rotate(0deg); opacity: 0; }
+            to { transform: translate(var(--tx, 0), var(--ty, 0)) scale(1) rotate(var(--r, 0deg)); opacity: 1; }
+        }
+        .deck-container { position: relative; height: 192px; }
+        .flip-card-container.in-deck {
+            position: absolute; left: 50%; top: 0;
+            transform-origin: center center;
+            margin-left: -64px;
+            opacity: 0;
+        }
+        .flip-card-container.dealt {
+            animation: dealCard 0.7s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        /* --- Estilos para el mini-juego de "Drag & Drop" (Oficial de Cumplimiento) --- */
+        .draggable-doc {
+            @apply bg-white p-3 rounded-lg shadow-md border border-gray-200 flex items-center gap-3 transition-all duration-200;
+            cursor: grab;
+        }
+        .draggable-doc:hover {
+            @apply shadow-lg transform -translate-y-1;
+        }
+        .draggable-doc.dragging {
+            @apply opacity-50 shadow-xl scale-105;
+        }
+        .drop-zone {
+            @apply p-4 rounded-xl border-2 border-dashed transition-all duration-200 min-h-[200px];
+        }
+        .drop-zone.drag-over {
+            @apply ring-4;
+        }
+
+        /* --- Estilos para el mini-juego de "Calculadora" (Experto en Valoración) --- */
+        .data-box {
+            @apply bg-gray-100 p-3 rounded-lg border border-gray-200 text-center;
+        }
+        .data-label {
+            @apply text-sm font-medium text-gray-600 block;
+        }
+        .data-value {
+            @apply text-xl font-extrabold text-gray-800;
+        }
+        .input-valor {
+            @apply w-full p-3 text-xl font-bold text-center border-2 border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 transition;
+        }
+        .step-container { @apply p-4 rounded-xl border-2 border-gray-200; }
+        .feedback-box { @apply mt-2 p-2 text-sm font-semibold rounded-lg text-center; }
+        .feedback-correct { @apply bg-green-100 text-green-800; }
+        .feedback-incorrect { @apply bg-red-100 text-red-800; }
+
+        /* --- Estilos para el Dashboard de Logística --- */
+        .transport-option {
+            @apply p-4 rounded-xl border-2 border-gray-300 cursor-pointer transition-all duration-200;
+        }
+        .transport-option:hover {
+            @apply shadow-lg transform -translate-y-1;
+        }
+        .transport-option.selected {
+            @apply ring-4 ring-cyan-400 border-cyan-500 bg-cyan-50;
+        }
+        #map-svg .route-path {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: draw-path 1.5s ease-out forwards;
+        }
+        @keyframes draw-path { to { stroke-dashoffset: 0; } }
+
+        /* --- Estilos para el Dashboard Gerencial y Resultados --- */
+        .summary-card {
+            @apply bg-gray-100 p-4 rounded-lg border border-gray-200;
+        }
+        .summary-label {
+            @apply text-sm font-medium text-gray-600 block;
+        }
+        .summary-value {
+            @apply text-lg font-extrabold text-gray-800;
+        }
+        .decision-btn {
+            @apply w-full p-4 rounded-xl text-white font-extrabold text-xl transition-all duration-200 transform hover:scale-105;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800">
+
+    <!-- NUEVO HEADER ESTANDARIZADO -->
+    <header class="bg-white py-4 px-6 shadow-md sticky top-0 z-20 border-b">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <span class="text-2xl font-extrabold text-green-700">ADUWEB</span>
+                <span class="text-sm font-light text-gray-500 hidden sm:block">| Simulación: La Merca</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div id="globalTimerDisplay" class="bg-purple-600 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span>00:00</span>
+                </div>
+                <div id="statusDisplay" class="bg-blue-600 px-3 py-1 rounded-full text-sm font-semibold">
+                    Sala: N/A | Turno: N/A
+                </div>
+                <button onclick="leaveGame()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    Salir de Sala
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenedores de Audio para los Efectos de Sonido -->
+    <audio id="soundStart" src="./start.mp3" preload="auto"></audio>
+    <audio id="soundFlip" src="./flipcard.mp3" preload="auto"></audio>
+    <audio id="soundSend" src="./enviar.mp3" preload="auto"></audio>
+    <audio id="soundTick" src="./time.mp3" preload="auto" loop></audio>
+    <audio id="soundTimeUp" src="./tic.mp3" preload="auto"></audio>
+    <audio id="soundMiedo" src="./miedo.mp3" preload="auto" loop></audio>
+    <audio id="soundDrag" src="./click.mp3" preload="auto"></audio>
+    <audio id="soundDrop" src="./poner.mp3" preload="auto"></audio>
+    <audio id="soundHelp" src="./ayuda.mp3" preload="auto"></audio>
+    <!-- NUEVOS SONIDOS -->
+    <audio id="soundCorrect" src="./correct.mp3" preload="auto"></audio>
+    <audio id="soundWrong" src="./wrong.mp3" preload="auto"></audio>
+    <audio id="soundApprove" src="./stamp.mp3" preload="auto"></audio>
+    <audio id="soundReject" src="./reject.mp3" preload="auto"></audio>
+
+
+
+    <main class="max-w-7xl mx-auto p-6 md:p-10">
+        
+        <div class="bg-white shadow-2xl rounded-xl p-6 md:p-8 mb-8 border-t-8 border-green-600">
+            <h2 id="roleTitle" class="text-3xl font-extrabold text-gray-800 mb-1">
+                [Rol Dinámico]
+            </h2>
+            <p id="roleFocus" class="text-lg text-green-700 font-semibold mb-4">
+                [Enfoque Dinámico]
+            </p>
+            <div class="flex items-center text-gray-600 text-sm">
+                <span id="playerInfo" class="mr-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span id="playerNameDisplay">Jugador: [Nombre]</span>
+                </span>
+            </div>
+        </div>
+        
+        <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-200 mb-8">
+            <h3 class="text-xl font-bold text-indigo-800 mb-2">Flujo de la Simulación</h3>
+            <p id="globalStatus" class="text-lg font-semibold text-indigo-700">Esperando el inicio de la cadena de procesos...</p>
+            <p class="text-sm text-indigo-600 mt-2">Tarea en Curso: <strong id="currentTurnRoleName">Nadie</strong></p>
+        </div>
+
+
+        <h3 class="text-2xl font-bold mb-5 text-gray-800 border-b pb-2">
+            <span class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                Mi Tarea Activa: <span id="missionName" class="text-green-700"></span>
+            </span>
+        </h3>
+        
+        <div id="roleTasksContainer" class="mission-card">
+            <div class="text-center p-10">
+                 <p class="text-gray-500 font-semibold">Cargando tu misión...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- NUEVA PANTALLA DE RESULTADOS FINALES -->
+    <div id="resultsScreen" class="hidden max-w-4xl mx-auto p-4 md:p-8 animate-fade-in">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl border-t-8 border-indigo-600">
+            <h1 class="text-3xl font-extrabold text-gray-900 mb-2">📊 Resultados Finales de la Simulación</h1>
+            <p class="text-lg text-gray-600 mb-6">Resumen completo de la operación de importación.</p>
+
+            <div id="final-decision-display" class="p-4 text-center rounded-lg mb-6 text-2xl font-extrabold">
+                <!-- Se llenará dinámicamente -->
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="summary-card">
+                    <span class="summary-label">Código Arancelario</span>
+                    <span id="result-tariff" class="summary-value font-mono"></span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Cumplimiento RNA</span>
+                    <span id="result-compliance" class="summary-value"></span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Valor en Aduana</span>
+                    <span id="result-customs-value" class="summary-value"></span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Costo de Flete</span>
+                    <span id="result-freight" class="summary-value"></span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-xl border-2 border-gray-200 mb-6">
+                <h4 class="font-bold text-lg text-gray-800 mb-3">Análisis de Costos Final (Landed Cost)</h4>
+                <table class="w-full text-sm">
+                    <tbody>
+                        <tr class="border-b"><td class="py-2">Valor en Aduana (CIF)</td><td id="result-cost-cif" class="py-2 text-right font-semibold"></td></tr>
+                        <tr class="border-b"><td class="py-2">Arancel (Gravamen 10%)</td><td id="result-cost-tariff" class="py-2 text-right font-semibold"></td></tr>
+                        <tr class="border-b"><td class="py-2">IVA (19%)</td><td id="result-cost-vat" class="py-2 text-right font-semibold"></td></tr>
+                        <tr class="bg-gray-100"><td class="py-2 font-bold">Landed Cost Total</td><td id="result-cost-total" class="py-2 text-right font-bold text-lg"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <button onclick="leaveGame(true)" class="w-full p-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition">
+                Finalizar y Volver al Menú
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-app.js";
+        import { getDatabase, ref, onValue, update, off, remove, get } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-database.js"; // Firebase Realtime Database
+        import { playSound, stopSound } from "./utils.js"; // Import common sound functions
+        
+        // Importar el módulo del juego de aranceles
+        import { initTariffGame } from './game_modules/tariffSpecialistGame.js';
+
+        // 🔑 CONSTANTES DE SESIÓN Y ENTORNO
+        const SESSION_KEY = 'aduweb_player_name';
+        const SESSION_KEY_CAREER = 'aduweb_career';
+        const SESSION_KEY_CAREER_NAME = 'aduweb_career_name';
+        
+        // --- MÓDULO 1: CONSTANTES DE PUNTUACIÓN Y PENALIZACIÓN ---
+        const PENALTY_MAP = {
+            'failed_compliance_audit': { roles: ['compliance_officer', 'tariffs_specialist'], amount: 200, message: 'Fallo en auditoría de cumplimiento (RNA o Arancel incorrecto).' },
+            'cost_overrun': { roles: ['valuation_expert', 'import_manager'], amount: 150, message: 'Sobrecosto en la importación (valoración o decisión incorrecta).' },
+            'cargo_delay': { roles: ['logistics_coordinator'], amount: 100, message: 'Retraso crítico o sobrecosto en la gestión de ruta.' },
+            'RECHAZADO': { roles: ['import_manager'], amount: 50, message: 'La operación fue rechazada por el Gerente.' }
+        };
+
+        const TIME_BONUS_MAP = [
+            { threshold: 30, bonus: 50 }, // < 30s
+            { threshold: 60, bonus: 25 }, // 30s - 60s
+            { threshold: 120, bonus: 10 }, // 60s - 120s
+        ];
+
+        const BASE_SCORE_CORRECT = 100;
+        const BASE_SCORE_INCORRECT = 50;
+
+        // ¡NUEVO! Mapeo de roles de la simulación para mostrar el nombre correcto.
+        const SIMULATION_ROLE_NAMES = {
+            'tariffs_specialist': 'Especialista en Aranceles',
+            'compliance_officer': 'Oficial de Cumplimiento',
+            'valuation_expert': 'Experto en Valoración',
+            'logistics_coordinator': 'Coordinador de Logística',
+            'import_manager': 'Gerente de Importaciones'
+        };
+
+        // ⚙️ Importar configuración Firebase
+        import { firebaseConfig } from "./config.js";
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // 🎯 VARIABLES CLAVE DEL JUGADOR Y SALA
+        let currentRoomId = null;
+        let currentPlayerRole = null;
+        let playerName = null;
+        let roomListener = null;
+        let caseData = null; // NUEVO: Para almacenar los datos del caso de estudio
+        let globalTimerInterval = null;
+
+        // Formatear dinero (función global para ser usada por varios juegos)
+        const formatCurrency = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+
+
+        // ----------------------------------------------------------------------
+        // 🌐 JERARQUÍA Y MISIONES DE SIMULACIÓN (El motor del juego)
+        // ----------------------------------------------------------------------
+
+        // 1. Definición de la cadena de procesos (el cargo más bajo comienza)
+        const PROCESS_CHAIN = [
+            'tariffs_specialist',   // Tarea 1: Clasificación
+            'compliance_officer',   // Tarea 2: Regulaciones
+            'valuation_expert',     // Tarea 3: Valoración
+            'logistics_coordinator',// Tarea 4: Logística y Flete
+            'import_manager'        // Tarea 5: Decisión Final
+        ];
+        
+        // 2. Mapeo de misiones, entradas requeridas y la siguiente tarea en la cadena
+        const ROLE_MISSION_DATA = {
+            // TAREA 1: CLASIFICACIÓN ARANCELARIA (Comienza el juego)
+            'tariffs_specialist': { 
+                instruction: "Tu misión es clasificar la mercancía. Voltea las cartas para encontrar el código arancelario correcto. ¡Tienes 30 segundos para esta tarea específica!",
+                missionName: 'Clasificación de Mercancía',
+                next: 'compliance_officer',
+                input_key: 'tariffs_code', 
+                required: [],
+                // INTEGRACIÓN DEL NUEVO DASHBOARD INTERACTIVO
+                game: {
+                    html: initTariffGame.html,
+                    init: (container, isMyTurn) => initTariffGame.init(container, isMyTurn, caseData, playSound, stopSound)
+                }
+            },
+            // TAREA 2: VERIFICACIÓN DE REGULACIONES
+            'compliance_officer': { 
+                instruction: "Has recibido un código arancelario. Arrastra los documentos que consideres OBLIGATORIOS a la zona verde y los NO APLICABLES a la zona roja. Usa el Vademécum si necesitas ayuda.",
+                missionName: 'Verificación de Regulaciones (RNA)',
+                next: 'valuation_expert',
+                input_key: 'rna_check',
+                required: ['tariffs_code'], // Requiere la clasificación del anterior
+                // INTEGRACIÓN DEL DASHBOARD DE OFICIAL DE CUMPLIMIENTO
+                game: {
+                    html: (inputData) => `
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div class="lg:col-span-1 space-y-6">
+                                <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                                    <h4 class="font-bold text-lg text-blue-800 mb-2">Ficha de Importación</h4>
+                                    <p class="text-sm text-blue-700"><strong>Código Arancelario Recibido:</strong></p>
+                                    <p class="font-semibold text-blue-900 font-mono">${inputData.tariffs_code || 'Esperando dato...'}</p>
+                                </div>
+                                <div class="text-center">
+                                    <button id="showHelpBtn" class="bg-yellow-500 text-white font-semibold py-2 px-5 rounded-lg hover:bg-yellow-600 transition shadow-sm flex items-center gap-2 mx-auto">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg> Pedir Ayuda (Vademécum)
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="lg:col-span-2 space-y-6">
+                                <div>
+                                    <h4 class="font-bold text-lg text-gray-800 mb-2">Bandeja de Documentos</h4>
+                                    <div id="source-documents" class="p-4 bg-gray-100 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div id="required-zone" class="drop-zone bg-green-50 border-green-400 ring-green-200">
+                                        <h4 class="font-bold text-lg text-green-800 mb-2 text-center">📂 Documentos Requeridos</h4>
+                                    </div>
+                                    <div id="not-required-zone" class="drop-zone bg-red-50 border-red-400 ring-red-200">
+                                        <h4 class="font-bold text-lg text-red-800 mb-2 text-center">🗑️ Documentos No Aplicables</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="missionInput" value="">
+                    `,
+                    init: (container, isMyTurn) => {
+                        if (!isMyTurn) return;
+
+                        const sourceContainer = container.querySelector('#source-documents');
+                        const dropZones = container.querySelectorAll('.drop-zone');
+                        const submitBtn = document.getElementById('submitTaskBtn');
+                        const showHelpBtn = container.querySelector('#showHelpBtn');
+                        const missionInput = container.querySelector('#missionInput');
+
+                        const documents = caseData.compliance_officer.documents;
+
+                        documents.forEach(doc => {
+                            const docElement = document.createElement('div');
+                            docElement.id = doc.id;
+                            docElement.className = 'draggable-doc';
+                            docElement.draggable = true;
+                            docElement.innerHTML = `<span>${doc.icon}</span> <span class="font-semibold">${doc.name}</span>`;
+                            sourceContainer.appendChild(docElement);
+                            docElement.addEventListener('dragstart', (e) => { playSound('soundDrag'); e.dataTransfer.setData('text/plain', doc.id); setTimeout(() => docElement.classList.add('dragging'), 0); });
+                            docElement.addEventListener('dragend', () => { docElement.classList.remove('dragging'); });
+                        });
+
+                        dropZones.forEach(zone => {
+                            zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+                            zone.addEventListener('dragleave', () => { zone.classList.remove('drag-over'); });
+                            zone.addEventListener('drop', (e) => {
+                                e.preventDefault(); zone.classList.remove('drag-over');
+                                const docId = e.dataTransfer.getData('text/plain');
+                                const draggable = document.getElementById(docId);
+                                if (draggable) { playSound('soundDrop'); zone.appendChild(draggable); checkCompletion(); }
+                            });
+                        });
+
+                        function checkCompletion() {
+                            if (sourceContainer.children.length === 0) {
+                                const requiredDocs = Array.from(document.querySelectorAll('#required-zone .draggable-doc')).map(el => el.id);
+                                missionInput.value = JSON.stringify(requiredDocs); // Guardar resultado en el input
+                                submitBtn.disabled = false;
+                            }
+                        }
+
+                        showHelpBtn.addEventListener('click', () => {
+                            playSound('soundHelp');
+                            Swal.fire({ title: '📖 Vademécum Aduanero', html: `<ul class="text-sm text-left text-gray-600 space-y-2 list-disc list-inside p-4"><li><strong>Alimentos/Cosméticos:</strong> Requieren Registro Sanitario.</li><li><strong>Electrónicos/Juguetes:</strong> Requieren Reglamento Técnico.</li><li><strong>Plantas/Animales:</strong> Requieren Permiso Fitosanitario.</li><li><strong>Textiles/Acero:</strong> Pueden tener Derechos Anti-Dumping.</li></ul>`, icon: 'info', confirmButtonText: 'Entendido' });
+                        });
+                    }
+                }
+            },
+            // TAREA 3: DETERMINACIÓN DE VALOR
+            'valuation_expert': { 
+                instruction: "Tu tarea es calcular el Valor en Aduana definitivo. Completa cada paso de la calculadora. El valor FOB, Flete y Seguro son datos del caso. ¡No hay límite de tiempo, pero el cronómetro global sigue corriendo!",
+                missionName: 'Cálculo del Valor en Aduana',
+                next: 'logistics_coordinator',
+                input_key: 'customs_value', 
+                required: ['rna_check'],
+                game: {
+                    html: `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <h4 class="font-bold text-lg text-gray-800 mb-2">Datos del Caso</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div class="data-box"><span class="data-label">Valor FOB</span><span class="data-value">$50,000.00</span></div>
+                                    <div class="data-box"><span class="data-label">Flete</span><span class="data-value">$3,000.00</span></div>
+                                    <div class="data-box"><span class="data-label">Seguro</span><span class="data-value">$500.00</span></div>
+                                </div>
+                            </div>
+                            <div class="data-box bg-purple-50 border-purple-200">
+                                <span class="data-label">Tiempo de Análisis</span>
+                                <span id="game-timer" class="data-value text-purple-700 text-4xl">00:00</span>
+                            </div>
+                        </div>
+                        <div class="space-y-6">
+                            <div id="step-cif" class="step-container"></div>
+                            <div id="step-adjustment" class="step-container hidden"></div>
+                            <div id="step-final" class="step-container hidden"></div>
+                        </div>
+                        <input type="hidden" id="missionInput" value="">
+                    `,
+                    init: (container, isMyTurn) => {
+                        if (!isMyTurn) return;
+
+                        const submitBtn = document.getElementById('submitTaskBtn');
+                        const timerDisplay = container.querySelector('#game-timer');
+                        const missionInput = container.querySelector('#missionInput');
+
+                        const { FOB_VALUE, FREIGHT_VALUE, INSURANCE_VALUE, ADJUSTMENT_RATE } = caseData.valuation_expert;
+
+                        const steps = [
+                            { id: 'cif', title: 'Paso 1: Calcular Valor CIF', help: `FOB (${formatCurrency(FOB_VALUE)}) + Flete (${formatCurrency(FREIGHT_VALUE)}) + Seguro (${formatCurrency(INSURANCE_VALUE)})`, correctValue: FOB_VALUE + FREIGHT_VALUE + INSURANCE_VALUE },
+                            { id: 'adjustment', title: 'Paso 2: Calcular Ajuste (Comisión 2%)', help: `FOB (${formatCurrency(FOB_VALUE)}) x 2%`, correctValue: FOB_VALUE * ADJUSTMENT_RATE },
+                            { id: 'final', title: 'Paso 3: Calcular Valor en Aduana Definitivo', help: `Valor CIF + Ajuste`, correctValue: (FOB_VALUE + FREIGHT_VALUE + INSURANCE_VALUE) + (FOB_VALUE * ADJUSTMENT_RATE) }
+                        ];
+
+                        let timerInterval = null, seconds = 0;
+
+                        function startTimer() {
+                            timerInterval = setInterval(() => {
+                                seconds++;
+                                const min = String(Math.floor(seconds / 60)).padStart(2, '0');
+                                const sec = String(seconds % 60).padStart(2, '0');
+                                timerDisplay.textContent = `${min}:${sec}`;
+                            }, 1000);
+                        }
+
+                        function loadStep(stepIndex) {
+                            if (stepIndex >= steps.length) {
+                                submitBtn.disabled = false;
+                                return;
+                            }
+                            const step = steps[stepIndex];
+                            const stepContainer = container.querySelector(`#step-${step.id}`);
+                            stepContainer.classList.remove('hidden');
+                            stepContainer.innerHTML = `
+                                <h4 class="font-bold text-lg text-gray-800 mb-2">${step.title}</h4>
+                                <div class="flex items-center gap-4">
+                                    <input type="number" id="input-${step.id}" placeholder="0.00" class="input-valor flex-grow">
+                                    <button id="verify-${step.id}" class="bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700">Verificar</button>
+                                    <button id="help-${step.id}" class="bg-yellow-500 text-white font-semibold p-3 rounded-lg hover:bg-yellow-600"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><line x1="16" y1="10" x2="12" y2="10"></line><line x1="12" y1="10" x2="12" y2="14"></line><line x1="8" y1="10" x2="8" y2="18"></line></svg></button>
+                                </div>
+                                <div id="feedback-${step.id}" class="feedback-box hidden"></div>
+                            `;
+
+                            document.getElementById(`verify-${step.id}`).onclick = () => verifyStep(stepIndex);
+                            document.getElementById(`help-${step.id}`).onclick = () => showHelp(stepIndex);
+                        }
+
+                        function verifyStep(stepIndex) {
+                            playSound('soundDrag'); // Reutilizamos el sonido de click
+                            const step = steps[stepIndex];
+                            const input = document.getElementById(`input-${step.id}`);
+                            const feedback = document.getElementById(`feedback-${step.id}`);
+                            const userValue = parseFloat(input.value) || 0;
+
+                            feedback.classList.remove('hidden');
+                            if (Math.abs(userValue - step.correctValue) < 0.01) {
+                                playSound('soundCorrect');
+                                feedback.textContent = `✅ ¡Correcto! El valor es ${formatCurrency(step.correctValue)}.`;
+                                feedback.className = 'feedback-box feedback-correct';
+                                input.disabled = true;
+                                document.getElementById(`verify-${step.id}`).disabled = true;
+                                document.getElementById(`help-${step.id}`).disabled = true;
+                                if (step.id === 'final') missionInput.value = userValue; // Guardar valor final
+                                loadStep(stepIndex + 1);
+                            } else {
+                                playSound('soundWrong');
+                                feedback.textContent = `❌ Incorrecto. Revisa tus cálculos.`;
+                                feedback.className = 'feedback-box feedback-incorrect';
+                            }
+                        }
+
+                        function showHelp(stepIndex) {
+                            playSound('soundHelp');
+                            const step = steps[stepIndex];
+                            Swal.fire({ title: `Ayuda para: ${step.title}`, html: `<p class="text-lg font-mono p-4 bg-gray-100 rounded-lg">${step.help} = <strong class="text-green-600">${formatCurrency(step.correctValue)}</strong></p>`, icon: 'info', confirmButtonText: 'Entendido' });
+                        }
+
+                        startTimer();
+                        loadStep(0);
+                    }
+                }
+            },
+            // TAREA 4: GESTIÓN DE LOGÍSTICA
+            'logistics_coordinator': { 
+                instruction: "Elige el modo de transporte para la mercancía. Cada opción tiene un costo y tiempo de tránsito diferente. Tu elección afectará el costo final de la operación.",
+                missionName: 'Confirmación de Flete y Seguros',
+                next: 'import_manager',
+                input_key: 'final_freight', 
+                required: ['customs_value'],
+                game: {
+                    html: `
+                        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                            <div class="lg:col-span-2 space-y-4">
+                                <h4 class="font-bold text-lg text-gray-800">1. Selecciona el Modo de Transporte</h4>
+                                <div id="transport-options-container"></div>
+                            </div>
+                            <div class="lg:col-span-3">
+                                <h4 class="font-bold text-lg text-gray-800 mb-2">2. Visualización de Ruta y Costos</h4>
+                                <div class="bg-gray-200 rounded-xl border border-gray-300 relative overflow-hidden shadow-inner">
+                                    <svg id="map-svg" class="w-full h-96" viewBox="0 0 800 400">
+                                        <defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#d1d5db" stroke-width="0.5"/></pattern></defs>
+                                        <rect width="100%" height="100%" fill="url(#grid)" />
+                                        <path fill="#e5e7eb" d="M16,252L48,220L104,188L160,228L200,284L248,308L296,276L328,228L368,196L416,220L448,268L488,300L528,268L560,204L592,164L648,148L704,172L744,220L768,284L792,340H8V284Z" />
+                                        <path fill="#e5e7eb" d="M208,52L248,20L320,20L368,52L400,108L456,140L488,108L544,84L592,108L608,148L568,172L504,164L448,180L408,148L360,124L320,148L272,132L240,92Z" />
+                                        <path id="route-path" class="route-path" d="" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                                        <circle cx="200" cy="150" r="8" fill="#ef4444" stroke="white" stroke-width="2" /><text x="212" y="155" font-size="12" fill="#7f1d1d" font-weight="bold">Shanghai</text>
+                                        <circle cx="680" cy="250" r="8" fill="#16a34a" stroke="white" stroke-width="2" /><text x="570" y="255" font-size="12" fill="#065f46" font-weight="bold">Buenaventura</text>
+                                    </svg>
+                                    <div class="absolute bottom-4 left-4 right-4 bg-white/80 backdrop-blur-sm p-4 rounded-lg shadow-lg grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p class="text-sm font-semibold text-gray-600">Costo de Flete (USD)</p>
+                                            <p id="cost-display" class="text-2xl font-extrabold text-gray-800">$0.00</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-semibold text-gray-600">Tiempo de Tránsito</p>
+                                            <p id="time-display" class="text-2xl font-extrabold text-gray-800">0 días</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="missionInput" value="">
+                    `,
+                    init: (container, isMyTurn) => {
+                        if (!isMyTurn) return;
+
+                        const optionsContainer = container.querySelector('#transport-options-container');
+                        const routePath = container.querySelector('#route-path');
+                        const costDisplay = container.querySelector('#cost-display');
+                        const timeDisplay = container.querySelector('#time-display');
+                        const submitBtn = document.getElementById('submitTaskBtn');
+                        const missionInput = container.querySelector('#missionInput');
+
+                        const transportOptions = caseData.logistics_coordinator.transportOptions;
+
+                        let selectedOption = null;
+
+                        function selectTransport(optionId) {
+                            playSound('soundDrop'); // Reutilizamos el sonido de "soltar"
+                            selectedOption = transportOptions.find(opt => opt.id === optionId);
+                            if (!selectedOption) return;
+
+                            container.querySelectorAll('.transport-option').forEach(el => el.classList.remove('selected'));
+                            container.querySelector(`#option-${optionId}`).classList.add('selected');
+
+                            routePath.setAttribute('d', selectedOption.path);
+                            routePath.setAttribute('stroke', selectedOption.color);
+                            routePath.style.animation = 'none';
+                            routePath.offsetHeight;
+                            routePath.style.animation = null; 
+
+                            costDisplay.textContent = formatCurrency(selectedOption.cost);
+                            timeDisplay.textContent = `${selectedOption.time} días`;
+                            
+                            missionInput.value = selectedOption.cost; // Guardar el costo en el input oculto
+                            submitBtn.disabled = false;
+                        }
+
+                        transportOptions.forEach(opt => {
+                            const optionEl = document.createElement('div');
+                            optionEl.id = `option-${opt.id}`;
+                            optionEl.className = 'transport-option';
+                            optionEl.innerHTML = `
+                                <div class="flex items-center gap-4">
+                                    <span class="text-cyan-600">${opt.icon}</span>
+                                    <div>
+                                        <p class="font-bold text-lg text-gray-800">${opt.name}</p>
+                                        <p class="text-sm text-gray-600">${opt.description}</p>
+                                    </div>
+                                </div>
+                            `;
+                            optionEl.onclick = () => selectTransport(opt.id);
+                            optionsContainer.appendChild(optionEl);
+                        });
+
+                        // Seleccionar una opción por defecto al iniciar
+                        selectTransport(transportOptions[0].id);
+                    }
+                }
+            },
+            // TAREA 5: GERENTE DE IMPORTACIÓN (Finaliza el juego)
+            'import_manager': { 
+                instruction: "Has recibido toda la información de los roles anteriores. Revisa el caso y toma la decisión final: APROBAR o RECHAZAR la importación. Esta acción finalizará la simulación para todos.",
+                missionName: 'Decisión Final y Visto Bueno',
+                next: 'COMPLETED',
+                input_key: 'final_decision',
+                required: ['final_freight'],
+                game: {
+                    html: (lastResults) => `
+                        <div class="space-y-6">
+                            <div>
+                                <h4 class="font-bold text-lg text-gray-800 mb-3">Resumen del Caso de Importación</h4>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div class="summary-card">
+                                        <span class="summary-label">Código Arancelario</span>
+                                        <span class="summary-value font-mono">${lastResults.tariffs_code || 'N/A'}</span>
+                                    </div>
+                                    <div class="summary-card">
+                                        <span class="summary-label">Docs. RNA</span>
+                                        <span class="summary-value">${JSON.parse(lastResults.rna_check || '[]').length} Requeridos</span>
+                                    </div>
+                                    <div class="summary-card">
+                                        <span class="summary-label">Valor en Aduana</span>
+                                        <span class="summary-value">${formatCurrency(lastResults.customs_value || 0)}</span>
+                                    </div>
+                                    <div class="summary-card">
+                                        <span class="summary-label">Costo de Flete</span>
+                                        <span class="summary-value">${formatCurrency(lastResults.final_freight || 0)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg text-gray-800 mb-3 text-center">Toma la Decisión Final</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <button id="approve-btn" class="decision-btn bg-green-600 hover:bg-green-700">APROBAR</button>
+                                    <button id="reject-btn" class="decision-btn bg-red-600 hover:bg-red-700">RECHAZAR</button>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="missionInput" value="">
+                    `,
+                    init: (container, isMyTurn) => {
+                        if (!isMyTurn) return;
+
+                        const approveBtn = container.querySelector('#approve-btn');
+                        const rejectBtn = container.querySelector('#reject-btn');
+                        const missionInput = container.querySelector('#missionInput');
+                        const submitBtn = document.getElementById('submitTaskBtn');
+
+                        approveBtn.onclick = () => {
+                            playSound('soundApprove');
+                            missionInput.value = 'APROBADO';
+                            approveBtn.classList.add('ring-4', 'ring-offset-2', 'ring-green-400');
+                            rejectBtn.classList.remove('ring-4', 'ring-offset-2', 'ring-red-400');
+                            submitBtn.disabled = false;
+                        };
+
+                        rejectBtn.onclick = () => {
+                            playSound('soundReject');
+                            missionInput.value = 'RECHAZADO';
+                            rejectBtn.classList.add('ring-4', 'ring-offset-2', 'ring-red-400');
+                            approveBtn.classList.remove('ring-4', 'ring-offset-2', 'ring-green-400');
+                            submitBtn.disabled = false;
+                        };
+
+                        // El botón de envío principal está deshabilitado hasta que se toma una decisión
+                        submitBtn.disabled = true;
+                        // Cambiamos el texto para que sea más claro
+                        submitBtn.textContent = 'Confirmar Decisión y Finalizar';
+                    }
+                }
+            },
+            
+            // Fallback para roles no incluidos en el juego
+            'default': { 
+                game: { html: () => `<p class="text-xl font-bold text-red-800">Tu rol no participa en esta simulación multijugador.</p>`, init: () => {} }
+            }
+        };
+        
+        // ----------------------------------------------------------------------
+        // 🔄 FUNCIONES DE TIEMPO REAL (CORE RTDB)
+        // ----------------------------------------------------------------------
+        
+        /**
+         * 🟢 Inicia la escucha en tiempo real de la sala para el flujo de turnos.
+         */
+        function startListening(roomId) {
+            // Asegurarse de detener cualquier escucha anterior
+            if (roomListener) {
+                off(roomListener);
+            }
+            const roomRef = ref(db, `partidas_activas/${roomId}`);
+            
+            roomListener = onValue(roomRef, (snapshot) => {
+                const roomData = snapshot.val();
+                if (!roomData) {
+                    Swal.fire('Atención', 'El líder cerró la sala o la partida finalizó.', 'info');
+                    if (roomListener) roomListener(); // Detener el listener
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Obtener los datos específicos del jugador actual para leer su estado
+                const playerState = roomData.jugadores ? roomData.jugadores[playerName] : null;
+
+                // MODIFICACIÓN: Leer 'guideShown' del nodo del jugador (playerState)
+                // Si es el primer turno y el jugador actual no ha visto la guía, la mostramos.
+                if (roomData.proceso_global === PROCESS_CHAIN[0] && currentPlayerRole === PROCESS_CHAIN[0] && playerState && !playerState.guideShown) {
+                    showGuideWindow(currentRoomId);
+                }
+
+                // Iniciar o sincronizar el temporizador global
+                if (roomData.startTime && roomData.proceso_global !== 'COMPLETED') {
+                    startGlobalTimer(roomData.startTime);
+                }
+
+                if (roomData.proceso_global === 'COMPLETED') {
+                    // Detener el listener para evitar renders innecesarios
+                    // CORRECCIÓN: Llamar a la función de desuscripción directamente.
+                    if (roomListener) {
+                        const unsubscribe = roomListener;
+                        unsubscribe();
+                        roomListener = null;
+                    }
+                    // --- ¡NUEVO! Guardar el resultado de la partida en el perfil del usuario ---
+                    saveGameResultToUserProfile(roomData);
+
+                    // Detener el cronómetro global
+                    stopGlobalTimer();
+
+                    // Ahora, decidir si mostrar la ruleta del error o los resultados directamente.
+                    if (roomData.final_result && roomData.final_result !== 'success') {
+                        showErrorRevealWindow(roomData);
+                    } else {
+                        showFinalResults(roomData);
+                    }
+                    return; // Detener el renderizado normal
+                }
+
+                const currentGlobalProcess = roomData.proceso_global;
+                const lastResults = roomData.resultados || {};
+                renderRoomState(roomData, currentGlobalProcess); 
+                renderMyTask(currentGlobalProcess, lastResults, playerState); // Pasamos el estado del jugador
+            });
+        }
+        
+        /**
+         * 🎨 Actualiza la UI con el estado global de la simulación.
+         */
+        function renderRoomState(roomData, currentGlobalProcess) {
+            const players = roomData.jugadores || {};
+            const playerInTurn = Object.values(players).find(p => p.rol_id === currentGlobalProcess);
+            
+            let turnText = 'Esperando inicio de la partida...';
+            if (currentGlobalProcess === 'INICIANDO_SIMULACION') {
+                turnText = 'Iniciando el primer turno...';
+            } else if (currentGlobalProcess === 'COMPLETED') {
+                turnText = '¡SIMULACIÓN FINALIZADA! Revisa los resultados.';
+            } else if (playerInTurn) {
+                turnText = `Esperando la acción de: ${playerInTurn.nombre} (${currentGlobalProcess.toUpperCase()})`;
+            }
+
+            document.getElementById('globalStatus').textContent = turnText;
+            document.getElementById('currentTurnRoleName').textContent = currentGlobalProcess === 'COMPLETED' ? 'FINALIZADO' : (playerInTurn ? playerInTurn.nombre : 'Calculando...');
+        }
+
+        /**
+         * 🎯 Renderiza la misión específica del jugador y gestiona el turno.
+         */
+        function renderMyTask(currentGlobalProcess, lastResults, playerState) {
+            const taskCard = document.getElementById('roleTasksContainer');
+            const myTaskData = ROLE_MISSION_DATA[currentPlayerRole] || ROLE_MISSION_DATA['default'];
+            
+            // 1. Renderizar la misión específica para este rol.
+            document.getElementById('missionName').textContent = myTaskData.missionName || 'Esperando Asignación';
+            
+            // Renderizar el HTML de la tarea, pasando los resultados previos si aplica.
+            const gameHtml = myTaskData.game.html;
+            taskCard.innerHTML = (typeof gameHtml === 'function') ? gameHtml(lastResults) : gameHtml;
+
+            // 2. Comprobar el turno
+            const isMyTurn = currentGlobalProcess === currentPlayerRole;
+            
+            // 3. Activar/Desactivar controles
+            if (isMyTurn) {
+                taskCard.classList.remove('inactive');
+                taskCard.classList.add('active');
+
+                // Solo mostrar la alerta si el jugador ya vio la guía inicial (o si no es el primer turno)
+                if ((playerState && playerState.guideShown) || currentGlobalProcess !== PROCESS_CHAIN[0]) {
+                    Swal.fire({
+                        title: `¡Es tu Turno! Misión: ${myTaskData.missionName}`,
+                        html: `<p class="text-lg text-gray-700">${myTaskData.instruction || 'Completa tu tarea para que el proceso continúe.'}</p>`,
+                        icon: 'info',
+                        timer: 10000, // 10 segundos para leer
+                        timerProgressBar: true,
+                        showConfirmButton: true,
+                        confirmButtonText: 'Entendido, ¡Empezar!',
+                        allowOutsideClick: false
+                    }).then(() => {
+                        if (myTaskData.game.init) myTaskData.game.init(taskCard, isMyTurn);
+                    });
+                } else if (myTaskData.game.init) {
+                    // Si es el primer turno y la guía se está mostrando, iniciar el juego directamente después.
+                    myTaskData.game.init(taskCard, isMyTurn);
+                }
+
+                const submitBtn = document.createElement('button');
+                submitBtn.id = 'submitTaskBtn';
+                submitBtn.onclick = () => {
+                    // Para el oficial de cumplimiento, el resultado ya se guardó al hacer drop.
+                    // Para los demás, se lee el input en submitTaskResult.
+                    submitTaskResult();
+                };
+                submitBtn.className = 'w-full p-3 mt-6 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition';
+                // El botón de envío para el especialista en aranceles debe estar deshabilitado al principio
+                if (currentPlayerRole === 'tariffs_specialist') {
+                    submitBtn.disabled = true;
+                }
+                submitBtn.textContent = 'Enviar Resultado y Pasar Turno';
+                taskCard.appendChild(submitBtn);
+
+            } else {
+                // Si no es mi turno, la tarjeta se muestra pero permanece inactiva.
+                taskCard.classList.remove('active');
+                taskCard.classList.add('inactive');
+                
+                // Añadir un overlay visual para que sea más claro que no es su turno
+                const overlay = document.createElement('div');
+                overlay.className = 'absolute inset-0 bg-gray-400 bg-opacity-25 rounded-xl z-10';
+                if (!taskCard.querySelector('.absolute.inset-0')) {
+                    taskCard.style.position = 'relative';
+                    taskCard.appendChild(overlay);
+                }
+            }
+        }
+
+        /**
+         * ✅ Valida la respuesta de una tarea y devuelve el puntaje base.
+         */
+        function validateTask(role, result, roomData) {
+            const lastResults = roomData.resultados || {};
+            switch (role) {
+                case 'tariffs_specialist':
+                    // La mercancía correcta se perdió, así que hacemos una validación simple.
+                    // En una versión avanzada, guardaríamos la mercancía en Firebase.
+                    return result.length === 10 ? BASE_SCORE_CORRECT : BASE_SCORE_INCORRECT;
+                case 'compliance_officer':
+                    // Suponemos que para el código 8471.30.00 (Laptops) se requiere RTM.
+                    const requiredDocs = JSON.parse(result || '[]');
+                    return lastResults.tariffs_code === '8471.30.00' && requiredDocs.includes('doc-rtm') && requiredDocs.length === 1 ? BASE_SCORE_CORRECT : BASE_SCORE_INCORRECT;
+                case 'valuation_expert':
+                    // El valor correcto es 54500
+                    return Math.abs(parseFloat(result) - 54500) < 1 ? BASE_SCORE_CORRECT : BASE_SCORE_INCORRECT;
+                case 'logistics_coordinator':
+                    // El flete más barato es 3500 (Marítimo)
+                    return parseFloat(result) === 3500 ? BASE_SCORE_CORRECT : BASE_SCORE_INCORRECT;
+                case 'import_manager':
+                    // Se asume que APROBAR es lo correcto si no hay errores graves.
+                    // Esta lógica podría ser mucho más compleja.
+                    return result === 'APROBADO' ? BASE_SCORE_CORRECT : BASE_SCORE_INCORRECT;
+                default:
+                    return BASE_SCORE_CORRECT;
+            }
+        }
+
+        /**
+         * 🕵️‍♂️ AUDITORÍA FINAL: Revisa todos los resultados y determina si hubo un error.
+         * Devuelve la clave del error del PENALTY_MAP o 'success'.
+         */
+        function runFinalAudit(results) {
+            if (!caseData) return 'error_no_case'; // Fallback de seguridad
+            const correctAnswers = caseData.respuestas_correctas;
+
+            // Error 1: Auditoría de Cumplimiento (Arancel o RNA)
+            const requiredDocs = JSON.parse(results.rna_check || '[]');
+            if (results.tariffs_code !== correctAnswers.tariffs_code || !requiredDocs.includes(correctAnswers.required_doc)) {
+                return 'failed_compliance_audit';
+            }
+
+            // Error 2: Sobrecosto (Valoración o Flete)
+            if (Math.abs(parseFloat(results.customs_value) - correctAnswers.customs_value) > 1 || parseFloat(results.final_freight) > correctAnswers.optimal_freight) {
+                return 'cost_overrun';
+            }
+
+            // Si todo está bien
+            return 'success';
+        }
+
+
+        /**
+         * � Envía el resultado de mi tarea y pasa el turno al siguiente rol.
+         */
+        function submitTaskResult() {
+            // --- ¡NUEVO! Detener el temporizador específico de la tarea si existe ---
+            const taskContainer = document.getElementById('roleTasksContainer');
+            if (taskContainer && typeof taskContainer.stopGameTimer === 'function') {
+                taskContainer.stopGameTimer();
+            }
+            // Detener sonidos del timer si estaban activos
+            stopSound('soundTick');
+            stopSound('soundMiedo');
+
+            const submitBtn = document.getElementById('submitTaskBtn');
+            const missionInput = document.getElementById('missionInput');
+            const result = missionInput ? missionInput.value.trim() : null;
+            
+            if (!result) {
+                // Para el especialista, si el tiempo se agota, el resultado puede ser nulo pero debe continuar.
+                if (currentPlayerRole === 'tariffs_specialist' && missionInput.value === "TIEMPO_AGOTADO") {
+                    // No hacer nada, el turno pasará
+                } else {
+                    Swal.fire('Atención', 'Debes completar la tarea antes de enviar.', 'warning');
+                    return;
+                }
+            }
+
+            const myTaskData = ROLE_MISSION_DATA[currentPlayerRole];
+            const nextRole = myTaskData.next;
+            
+            // 1. Preparar las actualizaciones
+            const updates = {};
+            // Guardar el resultado de mi tarea en la base de datos de la sala
+            updates[`partidas_activas/${currentRoomId}/resultados/${myTaskData.input_key}`] = result;
+            
+            // --- ¡NUEVO! CÁLCULO DE PUNTAJE BASE Y BONO DE TIEMPO ---
+            const playerNode = `partidas_activas/${currentRoomId}/jugadores/${playerName}`;
+            const baseScore = validateTask(currentPlayerRole, result, window.currentRoomDataForValidation);
+            let timeBonus = 0;
+            
+            const turnStartTime = window.currentRoomDataForValidation?.jugadores?.[playerName]?.turnStartTime;
+            if (turnStartTime) {
+                const turnDuration = (Date.now() - turnStartTime) / 1000; // en segundos
+                for (const tier of TIME_BONUS_MAP) {
+                    if (turnDuration < tier.threshold) {
+                        timeBonus = tier.bonus;
+                        break;
+                    }
+                }
+            }
+            
+            updates[`${playerNode}/scores/base_score`] = (window.currentRoomDataForValidation?.jugadores?.[playerName]?.scores?.base_score || 0) + baseScore;
+            updates[`${playerNode}/scores/time_bonus`] = (window.currentRoomDataForValidation?.jugadores?.[playerName]?.scores?.time_bonus || 0) + timeBonus;
+
+
+            // --- ¡NUEVO! Guardar el tiempo individual si es el especialista en aranceles ---
+            if (currentPlayerRole === 'tariffs_specialist') {
+                const gameTimerDisplay = document.getElementById('gameTimer');
+                updates[`partidas_activas/${currentRoomId}/resultados/tariffs_time`] = 30 - (parseInt(gameTimerDisplay.textContent) || 0);
+            }
+            
+            // 2. Pasar el turno al siguiente rol en la cadena
+            updates[`partidas_activas/${currentRoomId}/proceso_global`] = nextRole;
+            // Marcar el inicio del turno para el siguiente jugador
+            const nextPlayer = Object.values(window.currentRoomDataForValidation.jugadores).find(p => p.rol_id === nextRole);
+            if (nextPlayer) {
+                updates[`partidas_activas/${currentRoomId}/jugadores/${nextPlayer.nombre}/turnStartTime`] = Date.now();
+            }
+
+            // CORRECCIÓN: Añadir el endTime en la misma actualización si el juego termina.
+            if (nextRole === 'COMPLETED') {
+                updates[`partidas_activas/${currentRoomId}/estado`] = 'COMPLETED'; // <-- ¡NUEVO!
+                updates[`partidas_activas/${currentRoomId}/endTime`] = Date.now();
+                // --- ¡NUEVO! Ejecutar auditoría y guardar el resultado final ---
+                const finalResults = { ...window.currentRoomDataForValidation.resultados, [myTaskData.input_key]: result };
+                const auditResult = runFinalAudit(finalResults);
+                updates[`partidas_activas/${currentRoomId}/final_result`] = auditResult;
+            }
+
+            // Actualizar el tiempo de la última acción para el timer global
+            updates[`partidas_activas/${currentRoomId}/lastActionTime`] = Date.now();
+            
+            // Deshabilitar botón para evitar doble envío
+            if (submitBtn) submitBtn.disabled = true;
+
+            // 3. Ejecutar la actualización
+            update(ref(db), updates)
+                .then(() => {
+                    playSound('soundSend');
+                    // Detener el timer del experto en valoración
+                    // (La variable timerInterval es local a su 'init', así que no podemos pararla desde aquí directamente, pero el cambio de página lo hará)
+                    if (nextRole !== 'COMPLETED') {
+                        Swal.fire('¡Tarea Completada!', `Pasando el turno a: ${nextRole.toUpperCase()}`, 'success');
+                    }
+                })
+                .catch(error => {
+                    Swal.fire('Error', 'No se pudo enviar el resultado. Revisa tu conexión.', 'error');
+                    console.error("Error al actualizar la DB:", error);
+                });
+        }
+
+        /**
+         * ⏱️ Inicia y sincroniza el temporizador global de la partida.
+         */
+        function startGlobalTimer(startTime) {
+            if (globalTimerInterval) clearInterval(globalTimerInterval);
+
+            const timerDisplay = document.getElementById('globalTimerDisplay');
+            
+            globalTimerInterval = setInterval(() => {
+                const now = Date.now();
+                const elapsedMs = now - startTime;
+                
+                const totalSeconds = Math.floor(elapsedMs / 1000);
+                const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+                const seconds = String(totalSeconds % 60).padStart(2, '0');
+                
+                timerDisplay.textContent = `⏳ ${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        function stopGlobalTimer() {
+            if (globalTimerInterval) clearInterval(globalTimerInterval);
+        }
+
+        /**
+         * ℹ️ Muestra la ventana guía inicial y marca que ya fue vista.
+         */
+        function showGuideWindow(roomId) {
+            Swal.fire({
+                title: '¡Bienvenido a la Simulación!',
+                html: `
+                    <div class="text-left space-y-3">
+                        <p>Estás a punto de comenzar una simulación de comercio exterior en tiempo real.</p>
+                        <p>Cada jugador tiene un rol y una tarea específica. Debes completar tu tarea para que el siguiente jugador en la cadena pueda continuar.</p>
+                        <p><strong>¡El tiempo corre para todos!</strong> El cronómetro global en la esquina superior derecha mide la duración total de la operación.</p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: '¡Entendido, empecemos!',
+                allowOutsideClick: false
+            }).then(() => {
+                // Marcar en la base de datos que el jugador ya vio la guía
+                const playerRef = ref(db, `partidas_activas/${roomId}/jugadores/${playerName}`);
+                update(playerRef, { guideShown: true });
+            });
+        }
+
+        /**
+         * 🎰 MÓDULO 2: Muestra la animación de revelación del error.
+         */
+        function showErrorRevealWindow(roomData) {
+            const finalResultKey = roomData.final_result;
+            const penaltyInfo = PENALTY_MAP[finalResultKey];
+            if (!penaltyInfo) return;
+
+            const responsibleRoles = penaltyInfo.roles;
+            const penaltyMessage = penaltyInfo.message;
+            const penaltyAmount = penaltyInfo.amount;
+
+            // Encontrar el nombre del jugador responsable
+            const penalizedPlayer = Object.values(roomData.jugadores).find(p => responsibleRoles.includes(p.rol_id));
+            const penalizedPlayerName = penalizedPlayer ? penalizedPlayer.nombre : "Equipo";
+            const responsibleRoleName = penalizedPlayer ? SIMULATION_ROLE_NAMES[penalizedPlayer.rol_id] : "Varios";
+
+            // 1. Mostrar la "Ruleta"
+            Swal.fire({
+                title: '¡Auditoría Final!',
+                html: '<h2 id="ruleta-text" class="text-4xl font-extrabold text-red-600 my-4">Analizando...</h2>',
+                icon: 'warning',
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                timer: 3000, // Duración de la "ruleta"
+                didOpen: () => {
+                    const allPlayerNames = Object.values(roomData.jugadores).map(p => p.nombre);
+                    const slotInterval = setInterval(() => {
+                        const randomName = allPlayerNames[Math.floor(Math.random() * allPlayerNames.length)];
+                        const ruletaText = document.getElementById('ruleta-text');
+                        if (ruletaText) ruletaText.textContent = randomName;
+                    }, 100);
+                    window.slotInterval = slotInterval; // Guardar para limpiarlo
+                },
+                willClose: () => {
+                    clearInterval(window.slotInterval);
+                    // 2. Revelación después del temporizador
+                    Swal.fire({
+                        title: '¡El Responsable es...!',
+                        html: `
+                            <p class="text-3xl font-bold text-red-700">${penalizedPlayerName} (${responsibleRoleName})</p>
+                            <p class="text-lg mt-3 text-gray-600">${penaltyMessage}</p>
+                            <p class="mt-4 text-sm font-semibold">Penalidad Aplicada: -${penaltyAmount} Pts.</p>
+                        `,
+                        icon: 'error',
+                        confirmButtonText: 'Ver Resultados Finales',
+                    }).then(() => {
+                        // Una vez que el usuario entiende, mostramos los resultados finales.
+                        showFinalResults(roomData);
+                    });
+                }
+            });
+        }
+
+        /**
+         * 💾 NUEVA FUNCIÓN: Guarda el resultado de esta partida en el perfil del usuario.
+         */
+        async function saveGameResultToUserProfile(roomData) {
+            const playerKey = localStorage.getItem('aduweb_player_key');
+            if (!playerKey || !roomData.jugadores[playerName]) return;
+
+            const playerResult = roomData.jugadores[playerName];
+            const finalScore = playerResult.final_score || 0;
+
+            const userRef = ref(db, `usuarios/${playerKey}`);
+            const snapshot = await get(userRef);
+
+            if (snapshot.exists()) {
+                const userData = snapshot.val();
+                const updates = {};
+
+                // 1. Actualizar puntaje total y misiones completadas
+                const newTotalScore = (userData.puntaje || 0) + finalScore;
+                const newMissionsCompleted = (userData.misiones_completadas || 0) + 1;
+                updates['puntaje'] = newTotalScore;
+                updates['misiones_completadas'] = newMissionsCompleted;
+
+                // 2. Añadir al historial de partidas
+                // --- OPTIMIZACIÓN: Limpiar la partida activa del perfil del usuario ---
+                updates[`usuarios/${playerKey}/activeMatch`] = null;
+
+                const gameHistoryEntry = {
+                    roomId: roomData.id_sala,
+                    score: finalScore,
+                    date: roomData.endTime,
+                    result: roomData.final_result || 'success'
+                };
+                updates[`gameHistory/${roomData.id_sala}`] = gameHistoryEntry;
+                
+                await update(userRef, updates);
+            }
+        }
+
+        /**
+         * 📊 Muestra la pantalla de resultados finales.
+         */
+        function showFinalResults(roomData) {
+            document.querySelector('main').classList.add('hidden');
+            document.getElementById('resultsScreen').classList.remove('hidden');
+
+            const results = roomData.resultados || {};
+            const players = roomData.jugadores || {};
+            const finalResultKey = roomData.final_result;
+
+            Object.keys(players).forEach(playerName => {
+                const player = players[playerName];
+                let penaltyPoints = 0;
+                if (finalResultKey && PENALTY_MAP[finalResultKey] && PENALTY_MAP[finalResultKey].roles.includes(player.rol_id)) {
+                    penaltyPoints = PENALTY_MAP[finalResultKey].amount;
+                }
+                const base = player.scores?.base_score || 0;
+                const bonus = player.scores?.time_bonus || 0;
+                player.final_score = base + bonus - penaltyPoints;
+            });
+
+
+            const decision = results.final_decision || 'NO DECIDIDO';
+
+            const decisionDisplay = document.getElementById('final-decision-display');
+            decisionDisplay.textContent = `Operación ${decision}`;
+            if (decision === 'APROBADO') {
+                decisionDisplay.className += ' bg-green-100 text-green-800';
+            } else {
+                decisionDisplay.className += ' bg-red-100 text-red-800';
+            }
+
+            // Poblar resumen
+            document.getElementById('result-tariff').textContent = results.tariffs_code || 'N/A';
+            document.getElementById('result-compliance').textContent = results.rna_check ? `${JSON.parse(results.rna_check).length} Docs` : 'N/A';
+            document.getElementById('result-customs-value').textContent = formatCurrency(results.customs_value || 0);
+            document.getElementById('result-freight').textContent = formatCurrency(results.final_freight || 0);
+
+            // Calcular y renderizar costos
+            const valorAduana = results.customs_value || 0;
+            const TARIFA_ARANCEL = 0.10;
+            const TARIFA_IVA = 0.19;
+
+            const arancel = valorAduana * TARIFA_ARANCEL;
+            const baseIva = valorAduana + arancel;
+            const iva = baseIva * TARIFA_IVA;
+            const landedCost = valorAduana + arancel + iva;
+
+            document.getElementById('result-cost-cif').textContent = formatCurrency(valorAduana);
+            document.getElementById('result-cost-tariff').textContent = formatCurrency(arancel);
+            document.getElementById('result-cost-vat').textContent = formatCurrency(iva);
+            document.getElementById('result-cost-total').textContent = formatCurrency(landedCost);
+
+            // Detener todos los sonidos de bucle por si acaso
+            stopSound('soundTick');
+            stopSound('soundMiedo');
+            stopGlobalTimer();
+        }
+        
+        /**
+         * 🚪 MODIFICADO: Sale de la sala, CERRÁNDOLA PARA TODOS.
+         */
+        async function leaveGame(isEndOfGame = false) {
+            // Si es el final del juego (botón en pantalla de resultados), no eliminar, solo redirigir.
+            if (isEndOfGame) {
+                Swal.fire({
+                    title: 'Volviendo al menú...',
+                    text: 'La sala y sus resultados han sido guardados.',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+                window.location.href = 'index.html';
+                return;
+            }
+        }
+
+        // En la pantalla de resultados, asegúrate de que el botón llame a la función con el nuevo parámetro.
+        // El HTML ya está correcto, pero lo pongo aquí para referencia:
+        // <button onclick="leaveGame(true)" class="w-full p-4 bg-blue-600 ...">
+        //     Finalizar y Volver al Menú
+        // </button>
+
+        // ----------------------------------------------------------------------
+        // 🚀 INICIALIZACIÓN
+        // ----------------------------------------------------------------------
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. MODIFICADO: Obtener los nuevos parámetros de la URL
+            const urlParams = new URLSearchParams(window.location.search);
+            currentRoomId = urlParams.get('matchId'); // Antes era 'room'
+            const groupId = urlParams.get('groupId');
+            const playerKey = urlParams.get('playerKey');
+            playerName = localStorage.getItem(SESSION_KEY);
+
+            if (!currentRoomId || !groupId || !playerKey) {
+                Swal.fire('Error', 'Datos de sala o rol faltantes.', 'error').then(() => {
+                    window.location.href = 'index.html'; 
+                });
+                return;
+            }
+
+            // 2. NUEVO: Obtener el rol del jugador desde Firebase
+            const playerRef = ref(db, `matches/${currentRoomId}/groups/${groupId}/players/${playerKey}`);
+            get(playerRef).then(snapshot => {
+                if (!snapshot.exists() || !snapshot.val().role) {
+                    Swal.fire('Error', 'No se pudo encontrar tu rol asignado en la partida.', 'error').then(() => window.location.href = 'index.html');
+                    return;
+                }
+                currentPlayerRole = snapshot.val().role;
+                initializeUIAndStartListening(); // Iniciar el resto del juego
+            });
+        });
+
+        // NUEVA FUNCIÓN: Separa la inicialización para que se ejecute después de obtener el rol
+        function initializeUIAndStartListening() {
+            const roleName = SIMULATION_ROLE_NAMES[currentPlayerRole] || "Rol Desconocido";
+            const dashboardData = ROLE_MISSION_DATA[currentPlayerRole] || ROLE_MISSION_DATA['default'];
+            
+            // 2. Cargar UI estática
+            document.getElementById('pageTitle').textContent = `Misión: ${roleName} - ADUWEB`;
+            document.getElementById('statusDisplay').textContent = `Sala: ${currentRoomId} | Rol: ${currentPlayerRole.toUpperCase()}`;
+            // Guardar datos de la sala en una variable global para validación
+            window.currentRoomDataForValidation = {}; 
+            onValue(ref(db, `partidas_activas/${currentRoomId}`), (snapshot) => { window.currentRoomDataForValidation = snapshot.val(); }, { onlyOnce: true });
+            document.getElementById('playerNameDisplay').textContent = `Jugador: ${playerName}`;
+            document.getElementById('roleTitle').textContent = roleName;
+            document.getElementById('roleFocus').textContent = dashboardData.instruction || "Completa tu tarea para que el proceso continúe.";
+            
+            // 3. Exportar funciones al scope global
+            window.submitTaskResult = submitTaskResult;
+            window.leaveGame = leaveGame;
+            window.showGuideWindow = showGuideWindow;
+            window.showErrorRevealWindow = showErrorRevealWindow;
+            
+            // 4. Iniciar la escucha de la partida
+            // (Asumimos que los datos del caso están en una ruta fija o se pueden obtener de la partida)
+            caseData = {}; // En una versión futura, esto se cargaría dinámicamente
+            startListening(currentRoomId);
+        }
+
+    </script>
+</body>
+</html>

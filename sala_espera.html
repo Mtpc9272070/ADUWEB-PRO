@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sala Multijugador - ADUWEB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        .battle-mode-card {
+            @apply bg-white p-4 rounded-xl shadow-md border-2 border-gray-300 transition duration-200 cursor-pointer text-center;
+        }
+        .battle-mode-card.selected {
+            @apply ring-4 ring-blue-300 border-blue-500;
+        }
+        .join-group-btn {
+            @apply w-full mt-2 bg-green-500 text-white font-semibold py-1 px-3 rounded-lg hover:bg-green-600 transition text-sm;
+        }
+        .join-group-btn:disabled {
+            @apply bg-gray-400 cursor-not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <!-- Elementos de Audio -->
+    <audio id="soundClick" src="./sounds/click.mp3" preload="auto"></audio>
+
+    <main class="max-w-4xl w-full p-6 md:p-10 mx-auto animate-fade-in">
+        <h1 id="main-title" class="text-3xl font-extrabold text-gray-900 border-b pb-4 mb-8 flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            Sala Multijugador
+        </h1>
+<a href="index.html" class="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                Volver al Dashboard
+            </a>
+        <!-- Pantalla de Creación/Unión -->
+        <div id="lobby-controls">
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h2 class="text-xl font-bold text-gray-700 mb-4">Unirse a una Partida Existente</h2>
+                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                    <input type="text" id="matchIdInput" placeholder="ID de la Partida (Ej: PART-ABCD)" class="flex-grow p-3 border-2 border-gray-300 rounded-lg">
+                    <button onclick="joinMatchFromInput();" class="p-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition shadow-md">
+                        Unirse
+                    </button>
+                </div>
+            </div>
+
+            <!-- MODIFICADO: Formulario de creación con nuevas opciones -->
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-bold text-gray-700 mb-4">Crear Nueva Partida</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="matchName" class="block text-sm font-medium text-gray-700">Nombre de la Partida</label>
+                        <input type="text" id="matchName" placeholder="Ej: Duelo de Titanes - Semestre 1" class="w-full p-2 border border-gray-300 rounded-lg mt-1" value="Partida de Prueba">
+                    </div>
+
+                    <!-- Selección de Caso de Estudio -->
+                    <div>
+                        <label for="caseSelector" class="block text-sm font-medium text-gray-700">Caso de Estudio (Multicargo)</label>
+                        <select id="caseSelector" class="w-full p-2 border border-gray-300 rounded-lg mt-1">
+                            <option value="">Cargando casos...</option>
+                        </select>
+                    </div>
+
+                    <!-- Selección de Modo de Batalla -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Modo de Batalla</label>
+                        <div id="battle-mode-container" class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            <div class="battle-mode-card" data-mode="1v1">1 vs 1</div>
+                            <div class="battle-mode-card" data-mode="2v2">2 vs 2</div>
+                            <div class="battle-mode-card" data-mode="3v3">3 vs 3</div>
+                            <div class="battle-mode-card" data-mode="4v4">4 vs 4</div>
+                            <div class="battle-mode-card selected" data-mode="5v5">5 vs 5</div>
+                        </div>
+                    </div>
+
+                    <button id="createMatchBtn" onclick="createMatch()" class="w-full p-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition shadow-md">
+                        Crear Partida y Abrir Lobby
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla de Lobby de Partida (Oculta) - ESTA SERÁ LA NUEVA SALA_MULTIJUGADOR.HTML -->
+        <div id="match-lobby" class="hidden space-y-6 bg-gray-50 p-6 rounded-xl border border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 flex justify-between items-center">
+                <span>Lobby: <span id="currentMatchName" class="text-blue-600"></span></span>
+                <button onclick="copyInviteLink()" class="text-sm bg-yellow-400 text-yellow-900 font-semibold px-3 py-1 rounded-full hover:bg-yellow-500 transition">
+                    ID: <span id="currentMatchId"></span> (Copiar Enlace)
+                </button>
+            </h2>
+            <!-- El contenido del lobby (bandos, jugadores, etc.) irá en la nueva sala_multijugador.html -->
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-app.js"; // Firebase App (core)
+        import { getDatabase, ref, set, get, update, remove, onValue, off, push } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-database.js"; // Firebase Realtime Database
+        import { firebaseConfig } from "./config.js"; // Importar configuración centralizada
+        import { playSound } from "./utils.js"; // Import the common playSound function
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // 🔑 VARIABLES CLAVE
+        let currentMatchId = null;
+        let currentPlayerKey = null;
+        let playerName = null;
+        let isRoomLeader = false;
+        let matchListener = null; 
+        let currentMatchData = {}; // Variable para almacenar el estado actual de la partida
+
+
+        // ----------------------------------------------------------------------
+        // 🔄 FUNCIONES DE FIREBASE Y TIEMPO REAL
+        // ----------------------------------------------------------------------
+
+        /**
+         * 🚪 MODIFICADO: Gestiona la salida de la sala.
+         * Si es el líder, le da opciones. Si es un jugador normal, simplemente sale.
+         */
+        async function leaveMatch(notifyFirebase = true) {
+            playSound('soundClick');
+            if (isRoomLeader) {
+                // Si es el líder, mostrar modal con opciones
+                const { value: action } = await Swal.fire({
+                    title: 'Eres el líder de la sala',
+                    text: '¿Qué deseas hacer?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonText: 'Pasar Liderazgo',
+                    denyButtonText: 'Eliminar Sala',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#3b82f6', // blue-500
+                    denyButtonColor: '#ef4444',    // red-500
+                });
+
+                if (action === true) { // El usuario hizo clic en "Pasar Liderazgo"
+                    openPassLeaderModal();
+                } else if (action === false) { // El usuario hizo clic en "Eliminar Sala"
+                    await deleteRoom();
+                }
+                // Si es 'cancel', no se hace nada.
+
+            } else {
+                // Si no es el líder, simplemente sale de la sala.
+                await exitAsPlayer(notifyFirebase);
+            }
+        }
+
+        /**
+         * 🚪 Lógica para que un jugador normal salga de la sala.
+         */
+        async function exitAsPlayer(notifyFirebase = true) {
+            if (matchListener) {
+                matchListener(); // CORRECCIÓN: Llamar a la función de desuscripción
+                matchListener = null;
+            }
+
+            if (currentMatchId && currentPlayerKey && notifyFirebase && currentMatchData.groups) {
+                const playerGroup = Object.entries(currentMatchData.groups).find(([groupId, group]) => group.players && group.players[currentPlayerKey]);
+                if (playerGroup) {
+                    const groupId = playerGroup[0];
+                    const playerRef = ref(db, `matches/${currentMatchId}/groups/${groupId}/players/${currentPlayerKey}`);
+                    // OPTIMIZACIÓN: Limpiar la partida activa del perfil del usuario.
+                    const userActiveMatchRef = ref(db, `usuarios/${currentPlayerKey}/activeMatch`);
+                    await set(userActiveMatchRef, null);
+
+                    await remove(playerRef);
+                }
+            }
+
+            // Redirigir siempre al dashboard principal
+            window.location.href = 'index.html'; 
+        }
+
+        /**
+         * 🗑️ Lógica para que el líder elimine la sala para todos.
+         */
+        async function deleteRoom() {
+            Swal.fire({
+                title: 'Eliminando Sala...',
+                text: 'Todos los jugadores serán expulsados.',
+                icon: 'warning',
+                showConfirmButton: false,
+                timer: 2000
+            });
+
+            if (matchListener) {
+                matchListener(); // CORRECCIÓN: Llamar a la función de desuscripción
+                matchListener = null;
+            }
+
+            if (currentMatchId) {
+                const matchRef = ref(db, `matches/${currentMatchId}`);
+                // OPTIMIZACIÓN: Limpiar la partida activa de todos los jugadores de la sala.
+                const updates = {};
+                Object.values(currentMatchData.groups || {}).forEach(g => {
+                    Object.keys(g.players || {}).forEach(pKey => updates[`usuarios/${pKey}/activeMatch`] = null);
+                });
+                await update(ref(db), updates);
+
+                await remove(matchRef);
+            }
+
+            window.location.href = 'index.html';
+        }
+
+        /**
+         * 🚀 Inicia el juego actualizando el estado de la sala a 'EN_CURSO'.
+         */
+        async function startMatch() {
+            // REFACTORIZADO: Lógica de asignación de juegos
+            playSound('soundClick');
+            if (!isRoomLeader) return; // Solo el líder puede iniciar
+
+            const updates = {};
+            const matchConfig = currentMatchData.config;
+            const templates = matchConfig.game_templates;
+
+            // Asignar juegos a cada jugador
+            Object.entries(currentMatchData.groups).forEach(([groupId, group]) => {
+                const players = Object.values(group.players || {});
+                players.forEach((player, index) => {
+                    let assignedGameId;
+                    if (matchConfig.match_type === 'individual') {
+                        // Todos juegan el mismo juego
+                        assignedGameId = templates[0];
+                    } else {
+                        // Cada jugador del grupo juega un juego diferente
+                        assignedGameId = templates[index % templates.length];
+                    }
+                    updates[`matches/${currentMatchId}/groups/${groupId}/players/${player.key}/assigned_game`] = assignedGameId;
+                });
+            });
+
+            // Finalmente, cambiar el estado de la partida para que todos sean redirigidos
+            updates[`multiplayer_matches/${currentMatchId}/status`] = 'IN_PROGRESS';
+            
+            await update(ref(db), updates)
+                .then(() => {
+                    console.log("Partida iniciada para todos los grupos.");
+                })
+                .catch(error => {
+                    console.error("Error al iniciar partida:", error);
+                    Swal.fire('Error', 'No se pudo iniciar el juego.', 'error');
+                });
+        }
+        
+        /**
+         * NUEVO: Asigna roles a los jugadores de un grupo para "La Merca".
+         */
+        async function assignRolesToGroup(matchId, groupId) {
+            const group = currentMatchData.groups[groupId];
+            if (!group || !group.players) return;
+
+            const players = Object.values(group.players);
+            const roles = ['tariffs_specialist', 'compliance_officer', 'valuation_expert', 'logistics_coordinator', 'import_manager'];
+            
+            const updates = {};
+            players.forEach((player, index) => {
+                const roleId = roles[index % roles.length]; // Asigna roles en orden, ciclando si hay más jugadores que roles
+                updates[`matches/${matchId}/groups/${groupId}/players/${player.key}/role`] = roleId;
+            });
+
+            await update(ref(db), updates);
+            console.log(`Roles asignados para el grupo ${groupId}`);
+        }
+
+        // ----------------------------------------------------------------------
+        // 🛠️ FUNCIONES DE UNIÓN Y CREACIÓN DE SALA (Implementación Completa)
+        // ----------------------------------------------------------------------
+
+        /**
+         * ➕ Crea una sala y une al líder.
+         */
+        async function createMatch() {
+            playSound('soundClick');
+            const matchName = document.getElementById('matchName').value.trim();
+            const caseId = document.getElementById('caseSelector').value;
+            const battleMode = document.querySelector('.battle-mode-card.selected')?.dataset.mode;
+
+            if (!matchName || !caseId || !battleMode) {
+                Swal.fire('Campos Incompletos', 'Debes darle un nombre a la partida, seleccionar un caso y un modo de batalla.', 'warning');
+                return;
+            }
+
+            const newMatchId = 'MP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+
+            // Objeto de la partida que se guardará en Firebase
+            const matchData = {
+                config: {
+                    id: newMatchId,
+                    name: matchName,
+                    case_id: caseId,
+                    battle_mode: battleMode,
+                    leader_key: currentPlayerKey,
+                    created_at: Date.now()
+                },
+                status: 'WAITING',
+                teams: { azul: { players: {} }, rojo: { players: {} } }
+            };
+
+            // Guardar la configuración inicial de la partida en Firebase
+            await set(ref(db, `partidas_multijugador/${newMatchId}`), matchData);
+
+            // Redirigir al nuevo lobby de la partida
+            Swal.fire({
+                title: 'Creando Sala...',
+                text: `Redirigiendo al lobby de la partida ${newMatchId}.`,
+                icon: 'info',
+                timer: 1500,
+                showConfirmButton: false,
+                didClose: () => {
+                    window.location.href = `sala_multijugador.html?matchId=${newMatchId}`;
+                }
+            });
+        }
+
+        /**
+         * 🔎 Intenta unirse a una sala existente.
+         */
+        async function joinMatchFromInput(idFromUrl = null, groupIdToJoin = null) {
+            playSound('soundClick');
+            const inputId = idFromUrl || document.getElementById('matchIdInput').value.trim().toUpperCase();
+            if (!inputId) {
+                 Swal.fire('Error', 'Ingresa el ID de la sala.', 'error');
+                 return;
+            }
+            
+            const snapshot = await get(ref(db, `partidas_multijugador/${inputId}`));
+            if (snapshot.exists()) {
+                 const matchData = snapshot.val();
+
+                 // Validaciones
+                 if (matchData.status === 'IN_PROGRESS') {
+                      Swal.fire('Error', 'La partida ya está en curso.', 'error');
+                      return;
+                 }
+                // Redirigir al lobby de la partida
+                window.location.href = `sala_multijugador.html?matchId=${inputId}`;
+            } else {
+                 Swal.fire('Error', 'ID de sala no encontrado.', 'error');
+            }
+        }
+
+        /**
+         * NUEVA FUNCIÓN: Al cargar la página, busca si el jugador ya está en una sala.
+         */
+        async function checkForExistingMatchAndJoin() {
+            try {
+                // OPTIMIZACIÓN: Leer directamente del perfil del usuario.
+                const userRef = ref(db, `usuarios/${currentPlayerKey}`);
+                const userSnapshot = await get(userRef);
+
+                if (userSnapshot.exists()) {
+                    const userData = userSnapshot.val();
+                    const activeMatchId = userData.activeMatch;
+
+                    if (activeMatchId) {
+                        // Si tiene una partida activa, lo redirigimos al lobby de esa partida.
+                        const matchSnapshot = await get(ref(db, `matches/${activeMatchId}`));
+                        if (matchSnapshot.exists()) {
+                            await joinMatchLobby(activeMatchId, matchSnapshot.val().leader_key);
+                        }
+                    }
+                }
+            } catch (error) {
+                Swal.fire('Error', 'No se pudo verificar tu estado en las salas. Por favor, intenta unirte manualmente.', 'error');
+            }
+        }
+
+        /**
+         * NUEVA FUNCIÓN: Maneja el parámetro de URL para unirse a una sala.
+         */
+        async function handleJoinFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const matchIdToJoin = urlParams.get('joinRoomId');
+            const groupIdToJoin = urlParams.get('groupId'); // NUEVO: Leer el ID del grupo
+
+            if (matchIdToJoin) {
+                window.location.href = `sala_multijugador.html?matchId=${matchIdToJoin.toUpperCase()}`;
+            } else {
+                // Si no hay invitación, buscar si ya estaba en una sala
+                await checkForExistingMatchAndJoin();
+            }
+        }
+
+        /**
+         * NUEVO: Copia el enlace de invitación al portapapeles.
+         */
+        function copyInviteLink() {
+            const url = `${window.location.origin}${window.location.pathname}?joinRoomId=${currentMatchId}`;
+            navigator.clipboard.writeText(url).then(() => {
+                Swal.fire({
+                    toast: true, position: 'top-end',
+                    icon: 'success', title: '¡Enlace de invitación copiado!',
+                    showConfirmButton: false, timer: 2000
+                });
+            });
+        }
+
+        window.copyInviteLink = copyInviteLink;
+
+        // NUEVO: Cargar casos de estudio en el selector
+        async function loadCases() {
+            const caseSelector = document.getElementById('caseSelector');
+            const casesRef = ref(db, 'casos_estudio');
+            const snapshot = await get(casesRef);
+            if (snapshot.exists()) {
+                caseSelector.innerHTML = '<option value="">-- Selecciona un Caso --</option>';
+                const cases = snapshot.val();
+                Object.keys(cases).forEach(caseId => {
+                    if (cases[caseId].caseType === 'multicargo') {
+                        caseSelector.innerHTML += `<option value="${caseId}">${cases[caseId].nombre || caseId}</option>`;
+                    }
+                });
+            } else {
+                caseSelector.innerHTML = '<option value="">No hay casos multicargo disponibles</option>';
+            }
+        }
+
+        // ----------------------------------------------------------------------
+        // 🚀 INICIALIZACIÓN
+        // ----------------------------------------------------------------------
+        
+        /**
+         * NUEVO: Verifica si el usuario tiene permiso para estar en esta página.
+         * Si no, lo redirige al index.
+         */
+        async function verifyAccess() {
+            const playerKey = localStorage.getItem('aduweb_player_key'); // Reutilizamos la variable global
+            if (!playerKey) {
+                Swal.fire({
+                    title: 'Acceso Denegado',
+                    text: 'Debes iniciar sesión para acceder a las partidas en línea.',
+                    icon: 'error',
+                    confirmButtonText: 'Ir al Login'
+                }).then(() => window.location.href = 'index.html');
+                return false;
+            }
+
+            const userRef = ref(db, `usuarios/${playerKey}`);
+            const snapshot = await get(userRef);
+
+            if (!snapshot.exists()) {
+                Swal.fire('Error', 'No se pudo encontrar tu perfil de usuario.', 'error').then(() => window.location.href = 'index.html');
+                return false;
+            }
+
+            const userData = snapshot.val();
+            const ticket = true;
+            const hasActiveTicket = true;
+
+            if (hasActiveTicket) {
+                return true; // Acceso permitido
+            } else {
+                Swal.fire({
+                    title: 'Acceso Bloqueado',
+                    text: 'Necesitas un "Tiquete: Partidas en Línea" activo para entrar. Cómpralo en la tienda usando tus puntos EXP.',
+                    icon: 'warning',
+                    confirmButtonText: 'Volver al Inicio'
+                }).then(() => {
+                    window.location.href = 'index.html';
+                    // OPTIMIZACIÓN: Si se le niega el acceso, limpiamos el estado por si acaso.
+                    const userActiveMatchRef = ref(db, `usuarios/${playerKey}/activeMatch`);
+                    set(userActiveMatchRef, null);
+
+                });
+                return false; // Acceso denegado
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Verificar acceso ANTES de hacer cualquier otra cosa.
+            // Ocultar el contenido principal por defecto para evitar un "parpadeo"
+            document.querySelector('main').style.visibility = 'hidden';
+            const hasAccess = await verifyAccess();
+            if (!hasAccess) {
+                // Si no hay acceso, no se hace nada más. El Swal se encarga de la redirección.
+                return;
+            }
+
+            // Si hay acceso, mostrar el contenido y continuar con la lógica del lobby.
+            document.querySelector('main').style.visibility = 'visible';
+
+            currentPlayerKey = localStorage.getItem('aduweb_player_key'); 
+            playerName = localStorage.getItem('aduweb_player_name'); 
+
+            loadCases();
+
+            // Exportar funciones al scope global para que funcionen con onclick
+            window.createMatch = createMatch;
+            window.joinMatchFromInput = joinMatchFromInput;
+            window.playSound = playSound;
+
+            // Lógica de selección de modo de batalla
+            const battleModeCards = document.querySelectorAll('.battle-mode-card');
+            battleModeCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    battleModeCards.forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

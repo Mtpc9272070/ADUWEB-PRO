@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADUWEB | Casos SIPU</title>
+    
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- 3. Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <!-- Configuración Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        emerald: { 950: '#022c22', 50: '#ecfdf5', 500: '#10b981', 600: '#059669' },
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'slide-up': 'slideUp 0.4s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .role-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .role-card:active { transform: scale(0.96); }
+        .role-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-20 selection:bg-blue-100 selection:text-blue-800 min-h-screen">
+
+    <!-- ================= HEADER FIJO ================= -->
+    <header class="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-b border-slate-200 z-40 transition-all">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <button onclick="handleBack()" class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors">
+                <i data-lucide="arrow-left" class="w-6 h-6 text-slate-600"></i>
+            </button>
+            
+            <div class="flex flex-col items-center">
+                <h1 class="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                    <span class="bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">SIPU</span>
+                    <span class="text-slate-400 font-medium text-xs border border-slate-200 rounded px-1.5 py-0.5">CASOS</span>
+                </h1>
+            </div>
+
+            <button class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-400">
+                <i data-lucide="briefcase" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="h-20"></div>
+
+    <!-- ================= CONTENIDO PRINCIPAL ================= -->
+    <main class="max-w-4xl mx-auto px-4 py-6">
+
+        <!-- VISTA 1: SELECCIÓN DE ROL -->
+        <section id="role-selection" class="space-y-6 animate-fade-in">
+            
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-black text-slate-800 mb-2">Elige tu Rol Operativo</h2>
+                <p class="text-slate-500 text-sm max-w-md mx-auto">
+                    Simula escenarios reales desde diferentes perspectivas de la cadena logística.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="roles-grid">
+                <!-- Se llena dinámicamente -->
+            </div>
+
+        </section>
+
+        <!-- VISTA 2: LISTA DE CASOS (Oculta al inicio) -->
+        <section id="case-dashboard" class="hidden space-y-6">
+            
+            <!-- Banner del Rol Actual -->
+            <div id="role-header" class="bg-slate-900 rounded-3xl p-6 relative overflow-hidden shadow-xl text-white">
+                <div class="relative z-10">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div id="current-role-icon" class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-md">
+                            <!-- Icono dinámico -->
+                        </div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-white/60">Rol Activo</span>
+                    </div>
+                    <h2 id="current-role-title" class="text-3xl font-black mb-1">...</h2>
+                    <p id="current-role-desc" class="text-slate-400 text-sm max-w-lg">...</p>
+                </div>
+                <!-- Decoración -->
+                <div class="absolute right-0 bottom-0 opacity-10 transform translate-x-4 translate-y-4">
+                    <i data-lucide="layers" class="w-40 h-40"></i>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between px-1">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="list-todo" class="w-5 h-5 text-slate-400"></i> Casos Pendientes
+                </h3>
+                <span class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">3 Disponibles</span>
+            </div>
+
+            <div class="space-y-4" id="cases-list">
+                <!-- Se llena dinámicamente -->
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // DATOS DE ROLES
+        const ROLES = [
+            {
+                id: 'importer',
+                name: 'Importador',
+                desc: 'Gestiona la compra, documentación y pago de tributos.',
+                icon: 'shopping-cart',
+                color: 'blue',
+                accent: 'bg-blue-100 text-blue-600'
+            },
+            {
+                id: 'agent',
+                name: 'Agente de Aduanas',
+                desc: 'Clasifica mercancías y presenta la declaración ante la autoridad.',
+                icon: 'file-check',
+                color: 'emerald',
+                accent: 'bg-emerald-100 text-emerald-600'
+            },
+            {
+                id: 'transporter',
+                name: 'Transportador',
+                desc: 'Coordina la logística internacional y entrega de carga.',
+                icon: 'ship',
+                color: 'orange',
+                accent: 'bg-orange-100 text-orange-600'
+            },
+            {
+                id: 'authority',
+                name: 'Autoridad Aduanera',
+                desc: 'Inspecciona, valida y autoriza el levante de mercancías.',
+                icon: 'shield-check',
+                color: 'slate',
+                accent: 'bg-slate-200 text-slate-700'
+            }
+        ];
+
+        // DATOS DE CASOS (Ejemplo)
+        const CASES_DB = {
+            'importer': [
+                { id: 'imp01', title: 'Importación de Tecnología', desc: 'Gestiona la compra de laptops desde China. Revisa Incoterms y seguros.', difficulty: 1, time: '15 min' },
+                { id: 'imp02', title: 'Carga Perecedera', desc: 'Importación urgente de flores. Requiere vistos buenos sanitarios.', difficulty: 3, time: '25 min' }
+            ],
+            'agent': [
+                { id: 'age01', title: 'Clasificación Textil', desc: 'Determina la partida arancelaria correcta para prendas de vestir mixtas.', difficulty: 2, time: '20 min' },
+                { id: 'age02', title: 'Valoración Compleja', desc: 'Calcula la base gravable con descuentos y regalías involucradas.', difficulty: 3, time: '30 min' }
+            ],
+            'transporter': [
+                { id: 'tra01', title: 'Ruta Marítima', desc: 'Planifica la ruta óptima Shanghai-Buenaventura considerando costos.', difficulty: 1, time: '15 min' }
+            ],
+            'authority': [
+                { id: 'aut01', title: 'Inspección Física', desc: 'Detecta irregularidades en un contenedor perfilado por riesgo.', difficulty: 2, time: '20 min' }
+            ]
+        };
+
+        // ESTADO GLOBAL
+        let currentView = 'roles'; // 'roles' | 'cases'
+
+        // INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', () => {
+            renderRoles();
+            lucide.createIcons();
+        });
+
+        // RENDERIZAR ROLES
+        function renderRoles() {
+            const container = document.getElementById('roles-grid');
+            container.innerHTML = ROLES.map((role, index) => `
+                <div onclick="selectRole('${role.id}')" class="role-card bg-white p-5 rounded-3xl border border-slate-100 shadow-soft cursor-pointer relative overflow-hidden group animate-slide-up" style="animation-delay: ${index * 0.1}s">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-${role.color}-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                    
+                    <div class="w-12 h-12 ${role.accent} rounded-2xl flex items-center justify-center mb-4 relative z-10">
+                        <i data-lucide="${role.icon}" class="w-6 h-6"></i>
+                    </div>
+                    
+                    <h4 class="text-lg font-black text-slate-800 mb-1 relative z-10">${role.name}</h4>
+                    <p class="text-xs text-slate-500 mb-4 line-clamp-2 relative z-10 h-8">
+                        ${role.desc}
+                    </p>
+                    
+                    <div class="flex items-center gap-2 mt-auto relative z-10">
+                        <span class="text-[10px] font-bold bg-slate-50 text-slate-400 px-2 py-1 rounded border border-slate-100">
+                            ${CASES_DB[role.id]?.length || 0} Casos
+                        </span>
+                        <div class="ml-auto w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-${role.color}-500 group-hover:text-white transition-colors">
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // SELECCIONAR ROL
+        function selectRole(roleId) {
+            const role = ROLES.find(r => r.id === roleId);
+            const cases = CASES_DB[roleId] || [];
+
+            // Actualizar Header del Rol
+            document.getElementById('current-role-title').innerText = role.name;
+            document.getElementById('current-role-desc').innerText = role.desc;
+            document.getElementById('current-role-icon').innerHTML = `<i data-lucide="${role.icon}" class="w-6 h-6 text-white"></i>`;
+            
+            // Configurar color del banner según rol (simulado con clases genéricas o style directo si se desea)
+            const header = document.getElementById('role-header');
+            // Reset colors classes could be complex dynamically, keeping generic slate-900 looks pro.
+            
+            // Renderizar Casos
+            const list = document.getElementById('cases-list');
+            list.innerHTML = cases.map((c, index) => `
+                <div onclick="startCase('${c.id}', '${role.name}')" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer flex items-center gap-4 animate-slide-up" style="animation-delay: ${index * 0.1}s">
+                    <div class="w-12 h-12 rounded-xl bg-slate-50 flex flex-col items-center justify-center border border-slate-100 shrink-0">
+                         <span class="text-[10px] font-bold text-slate-400 uppercase">DIFICULTAD</span>
+                         <div class="flex gap-0.5 mt-0.5">
+                             ${Array(3).fill(0).map((_, i) => `
+                                <div class="w-1.5 h-1.5 rounded-full ${i < c.difficulty ? 'bg-orange-400' : 'bg-slate-200'}"></div>
+                             `).join('')}
+                         </div>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-bold text-slate-800 text-sm">${c.title}</h4>
+                        <p class="text-xs text-slate-500 line-clamp-1">${c.desc}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="block text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded mb-1">${c.time}</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300"></i>
+                </div>
+            `).join('');
+
+            // Cambiar Vista
+            document.getElementById('role-selection').classList.add('hidden');
+            document.getElementById('case-dashboard').classList.remove('hidden');
+            
+            // Re-render iconos en la nueva vista
+            lucide.createIcons();
+            currentView = 'cases';
+            window.scrollTo({top:0, behavior:'smooth'});
+        }
+
+        // INICIAR CASO
+        function startCase(caseId, roleName) {
+            Swal.fire({
+                title: 'Iniciando Simulación',
+                text: `Cargando entorno para ${roleName}...`,
+                icon: 'info',
+                timer: 1500,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            }).then(() => {
+                // Aquí redirigirías al simulador real
+                // window.location.href = `sipu_simulator.html?case=${caseId}`;
+                console.log(`Iniciando caso ${caseId}`);
+            });
+        }
+
+        // VOLVER ATRÁS
+        function handleBack() {
+            if (currentView === 'cases') {
+                document.getElementById('case-dashboard').classList.add('hidden');
+                document.getElementById('role-selection').classList.remove('hidden');
+                currentView = 'roles';
+            } else {
+                // Volver al index si estamos en la vista principal
+                window.location.href = 'index.html';
+            }
+        }
+
+    </script>
+</body>
+</html>

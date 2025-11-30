@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AduStore | Canje de Recompensas</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        emerald: { 50: '#ecfdf5', 500: '#10b981', 600: '#059669' },
+                        amber: { 50: '#fffbeb', 100: '#fef3c7', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
+                        slate: { 850: '#1e293b' }
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 40px -10px rgba(0,0,0,0.05)',
+                        'gold': '0 10px 30px -10px rgba(245, 158, 11, 0.4)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .product-card { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .product-card:active { transform: scale(0.96); }
+        
+        /* Brillo dorado animado */
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        .shimmer-text {
+            background: linear-gradient(90deg, #b45309 0%, #fbbf24 50%, #b45309 100%);
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: shimmer 3s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-28 selection:bg-amber-100 selection:text-amber-800 min-h-screen">
+
+    <!-- ================= HEADER CON BILLETERA ================= -->
+    <header class="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-slate-200 z-40 transition-all duration-300">
+        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <button onclick="window.history.back()" class="w-10 h-10 rounded-full hover:bg-slate-50 flex items-center justify-center transition-colors shrink-0">
+                <i data-lucide="arrow-left" class="w-6 h-6 text-slate-600"></i>
+            </button>
+            
+            <!-- Billetera Central -->
+            <div class="flex-1 bg-slate-100 rounded-full p-1 pl-4 flex items-center justify-between border border-slate-200">
+                <div class="flex flex-col">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Tu Saldo</span>
+                    <span class="text-sm font-black text-slate-800 flex items-center gap-1">
+                        <i data-lucide="coins" class="w-3 h-3 text-amber-500 fill-amber-500"></i> 2,450
+                    </span>
+                </div>
+                <button class="bg-emerald-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-emerald-600 transition-colors shadow-sm">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <button class="w-10 h-10 rounded-full hover:bg-slate-50 flex items-center justify-center transition-colors text-slate-400 relative shrink-0">
+                <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+                <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+            </button>
+        </div>
+        
+        <!-- Categorías (Tabs) -->
+        <div class="px-4 pb-0 overflow-x-auto scrollbar-hide border-t border-slate-100 mt-2">
+            <div class="flex gap-6 min-w-max mx-auto max-w-md pt-3 pb-1">
+                <button class="text-xs font-bold text-amber-600 border-b-2 border-amber-500 pb-2 px-1">Destacados</button>
+                <button class="text-xs font-bold text-slate-400 hover:text-slate-600 pb-2 px-1 transition-colors">Equipamiento</button>
+                <button class="text-xs font-bold text-slate-400 hover:text-slate-600 pb-2 px-1 transition-colors">Potenciadores</button>
+                <button class="text-xs font-bold text-slate-400 hover:text-slate-600 pb-2 px-1 transition-colors">Coleccionables</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Espaciador -->
+    <div class="h-36"></div>
+
+    <!-- ================= CONTENIDO PRINCIPAL ================= -->
+    <main class="max-w-md mx-auto px-4 space-y-6">
+
+        <!-- 1. HERO: OFERTA ESPECIAL -->
+        <section class="bg-slate-900 rounded-3xl p-6 shadow-gold border border-amber-500/30 relative overflow-hidden group cursor-pointer">
+            <!-- Efecto de luz dorada -->
+            <div class="absolute -top-10 -right-10 w-40 h-40 bg-amber-500 rounded-full blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity"></div>
+            
+            <div class="relative z-10 flex flex-col h-full justify-between min-h-[180px]">
+                <div>
+                    <span class="bg-amber-500 text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mb-2 inline-block shadow-sm">Oferta Limitada</span>
+                    <h2 class="text-2xl font-black text-white italic leading-tight">PACK <br/><span class="text-amber-400">INSPECTOR PRO</span></h2>
+                </div>
+                
+                <div class="flex items-end justify-between mt-4">
+                    <div>
+                        <p class="text-slate-400 text-xs line-through font-bold">3500 Monedas</p>
+                        <p class="text-xl font-black text-white flex items-center gap-1">
+                            <i data-lucide="coins" class="w-5 h-5 text-amber-400 fill-amber-400"></i> 2500
+                        </p>
+                    </div>
+                    <button class="bg-white text-slate-900 px-4 py-2 rounded-xl font-bold text-xs hover:scale-105 transition-transform shadow-lg flex items-center gap-2">
+                        Ver Pack <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Imagen Decorativa (Icono) -->
+            <div class="absolute right-0 bottom-0 opacity-20 transform translate-x-4 translate-y-4">
+                <i data-lucide="package-search" class="w-40 h-40 text-white"></i>
+            </div>
+        </section>
+
+        <!-- 2. GRID DE PRODUCTOS -->
+        <section>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-emerald-500 fill-emerald-500"></i> Populares
+                </h3>
+                <button class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">Ver Todo</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                
+                <!-- Item 1: Casco -->
+                <div class="product-card bg-white p-4 rounded-2xl shadow-soft border border-slate-100 flex flex-col group relative overflow-hidden">
+                    <div class="absolute top-2 left-2 bg-slate-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">-20%</div>
+                    
+                    <div class="h-24 bg-slate-50 rounded-xl mb-3 flex items-center justify-center group-hover:bg-amber-50 transition-colors">
+                        <i data-lucide="hard-hat" class="w-12 h-12 text-slate-400 group-hover:text-amber-500 transition-colors"></i>
+                    </div>
+                    
+                    <h4 class="font-bold text-slate-800 text-sm leading-tight">Casco de Seguridad Dorado</h4>
+                    <p class="text-[10px] text-slate-400 mt-1 mb-3">Skin Legendaria</p>
+                    
+                    <div class="mt-auto flex justify-between items-center">
+                        <span class="font-bold text-slate-700 text-sm flex items-center gap-1">
+                             <i data-lucide="coins" class="w-3 h-3 text-amber-500 fill-amber-500"></i> 1200
+                        </span>
+                        <button class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-colors">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Item 2: Escáner -->
+                <div class="product-card bg-white p-4 rounded-2xl shadow-soft border border-slate-100 flex flex-col group">
+                    <div class="h-24 bg-slate-50 rounded-xl mb-3 flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                        <i data-lucide="scan-barcode" class="w-12 h-12 text-slate-400 group-hover:text-blue-500 transition-colors"></i>
+                    </div>
+                    
+                    <h4 class="font-bold text-slate-800 text-sm leading-tight">Escáner de Rayos X v2</h4>
+                    <p class="text-[10px] text-slate-400 mt-1 mb-3">Herramienta de Juego</p>
+                    
+                    <div class="mt-auto flex justify-between items-center">
+                        <span class="font-bold text-slate-700 text-sm flex items-center gap-1">
+                             <i data-lucide="coins" class="w-3 h-3 text-amber-500 fill-amber-500"></i> 850
+                        </span>
+                        <button class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-colors">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Item 3: Botas -->
+                <div class="product-card bg-white p-4 rounded-2xl shadow-soft border border-slate-100 flex flex-col group">
+                    <div class="h-24 bg-slate-50 rounded-xl mb-3 flex items-center justify-center group-hover:bg-purple-50 transition-colors">
+                        <i data-lucide="footprints" class="w-12 h-12 text-slate-400 group-hover:text-purple-500 transition-colors"></i>
+                    </div>
+                    
+                    <h4 class="font-bold text-slate-800 text-sm leading-tight">Botas de Velocidad</h4>
+                    <p class="text-[10px] text-slate-400 mt-1 mb-3">Potenciador (1h)</p>
+                    
+                    <div class="mt-auto flex justify-between items-center">
+                        <span class="font-bold text-slate-700 text-sm flex items-center gap-1">
+                             <i data-lucide="coins" class="w-3 h-3 text-amber-500 fill-amber-500"></i> 400
+                        </span>
+                        <button class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-colors">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Item 4: Certificado -->
+                <div class="product-card bg-white p-4 rounded-2xl shadow-soft border border-slate-100 flex flex-col group relative">
+                     <div class="absolute top-2 left-2 bg-slate-100 text-slate-500 text-[9px] font-bold px-1.5 py-0.5 rounded">Digital</div>
+                    <div class="h-24 bg-slate-50 rounded-xl mb-3 flex items-center justify-center group-hover:bg-red-50 transition-colors">
+                        <i data-lucide="award" class="w-12 h-12 text-slate-400 group-hover:text-red-500 transition-colors"></i>
+                    </div>
+                    
+                    <h4 class="font-bold text-slate-800 text-sm leading-tight">Diploma Operador OEA</h4>
+                    <p class="text-[10px] text-slate-400 mt-1 mb-3">Certificación</p>
+                    
+                    <div class="mt-auto flex justify-between items-center">
+                        <span class="font-bold text-slate-700 text-sm flex items-center gap-1">
+                             <i data-lucide="coins" class="w-3 h-3 text-amber-500 fill-amber-500"></i> 5000
+                        </span>
+                        <button class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-colors">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Banner "Gana Monedas" -->
+        <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-4 flex items-center justify-between text-white shadow-lg">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <i data-lucide="play-circle" class="w-6 h-6 text-white fill-current"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-sm">Ver Video Publicitario</h4>
+                    <p class="text-[10px] text-emerald-100">+50 Monedas Gratis</p>
+                </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-5 h-5 text-white/70"></i>
+        </div>
+
+    </main>
+
+    <!-- Botón Flotante "Checkout" (Solo aparece si hay items, simulado aquí) -->
+    <div class="fixed bottom-6 left-0 right-0 px-4 z-50 pointer-events-none">
+        <div class="max-w-md mx-auto flex justify-center">
+             <!-- Este botón aparecería dinámicamente -->
+             <button class="pointer-events-auto bg-slate-900 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3 hover:scale-105 active:scale-95 transition-all hidden">
+                <span class="font-bold text-sm">Ver Carrito (2)</span>
+                <span class="w-px h-4 bg-white/20"></span>
+                <span class="font-bold text-amber-400 text-sm">1600 <i data-lucide="coins" class="inline w-3 h-3 fill-current"></i></span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

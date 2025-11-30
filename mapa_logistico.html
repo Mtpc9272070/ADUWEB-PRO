@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADUWEB | Rutas Logísticas</title>
+    
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- 3. Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- 4. Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <!-- Configuración Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        slate: { 850: '#1e293b' },
+                        brand: { 500: '#3b82f6', 600: '#2563eb' }
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Ajustes específicos para Leaflet y Layout */
+        body { overflow: hidden; }
+        
+        #mapContainer {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+            background: #e2e8f0; /* Fondo de carga */
+        }
+
+        /* Panel Lateral Transición */
+        #panel {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .panel-collapsed #panel {
+            transform: translateX(-100%);
+        }
+
+        /* Leaflet Custom Styles */
+        .leaflet-control-zoom { border: none !important; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important; border-radius: 8px !important; overflow: hidden; }
+        .leaflet-bar a { background: white !important; color: #475569 !important; border-bottom: 1px solid #f1f5f9 !important; }
+        .leaflet-bar a:hover { background: #f8fafc !important; color: #3b82f6 !important; }
+
+        /* Custom Markers */
+        .marker-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 2px solid white;
+        }
+        .marker-origin { background: #3b82f6; }
+        .marker-dest { background: #ef4444; }
+
+        /* Animación de Línea */
+        .leaflet-interactive {
+            stroke-dasharray: 10;
+            animation: dash 30s linear infinite;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: -1000; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen w-screen flex flex-col md:flex-row overflow-hidden">
+
+    <!-- ================= PANEL LATERAL DE CONTROL ================= -->
+    <aside id="panel" class="absolute md:relative z-20 w-full md:w-96 h-full bg-white/95 backdrop-blur-xl border-r border-slate-200 shadow-glass flex flex-col transition-transform duration-300 transform translate-x-0">
+        
+        <!-- Header del Panel -->
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white/50">
+            <div class="flex items-center gap-3">
+                <button onclick="window.location.href='index.html'" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-500">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </button>
+                <div>
+                    <h1 class="text-sm font-black text-slate-800 leading-none flex gap-1">
+                        ADUWEB <span class="text-blue-600">MAPS</span>
+                    </h1>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Configurador</span>
+                </div>
+            </div>
+            <!-- Botón cerrar en móvil -->
+            <button id="mobile-close-btn" class="md:hidden p-2 text-slate-400 hover:text-red-500">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Contenido Scrollable -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+            
+            <!-- Sección: Puntos de Ruta -->
+            <div class="space-y-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                        <i data-lucide="map-pin" class="w-3 h-3"></i>
+                    </div>
+                    <h2 class="text-xs font-black text-slate-700 uppercase tracking-wide">Puntos de Ruta</h2>
+                </div>
+
+                <!-- Origen -->
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 group focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Origen</label>
+                    
+                    <select id="origin-select" class="w-full bg-white border border-slate-200 text-slate-700 text-xs rounded-lg p-2 mb-2 focus:outline-none focus:border-blue-500 font-medium">
+                        <option value="">-- Seleccionar Predefinido --</option>
+                    </select>
+
+                    <div class="flex gap-2 mb-2">
+                        <input id="origin-name" type="text" value="Shanghai" class="flex-1 bg-white border-none shadow-sm rounded-lg px-3 py-2 text-sm font-bold text-slate-800 placeholder-slate-400 focus:ring-0" placeholder="Nombre Ciudad">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="relative">
+                            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold ml-1">LAT</span>
+                            <input id="origin-lat" type="number" value="31.23" step="0.01" class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-2 py-1.5 text-xs font-mono text-slate-600 focus:border-blue-500 outline-none">
+                        </div>
+                        <div class="relative">
+                            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold ml-1">LON</span>
+                            <input id="origin-lon" type="number" value="121.47" step="0.01" class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-2 py-1.5 text-xs font-mono text-slate-600 focus:border-blue-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Icono Conector -->
+                <div class="flex justify-center -my-2 relative z-10">
+                    <div class="w-6 h-6 bg-white rounded-full border border-slate-200 flex items-center justify-center text-slate-300 shadow-sm">
+                        <i data-lucide="arrow-down" class="w-3 h-3"></i>
+                    </div>
+                </div>
+
+                <!-- Destino -->
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 group focus-within:ring-2 focus-within:ring-emerald-100 transition-all">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Destino</label>
+                    
+                    <select id="dest-select" class="w-full bg-white border border-slate-200 text-slate-700 text-xs rounded-lg p-2 mb-2 focus:outline-none focus:border-emerald-500 font-medium">
+                        <option value="">-- Seleccionar Predefinido --</option>
+                    </select>
+
+                    <div class="flex gap-2 mb-2">
+                        <input id="dest-name" type="text" value="Valparaíso" class="flex-1 bg-white border-none shadow-sm rounded-lg px-3 py-2 text-sm font-bold text-slate-800 placeholder-slate-400 focus:ring-0" placeholder="Nombre Ciudad">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="relative">
+                            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold ml-1">LAT</span>
+                            <input id="dest-lat" type="number" value="-33.04" step="0.01" class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-2 py-1.5 text-xs font-mono text-slate-600 focus:border-emerald-500 outline-none">
+                        </div>
+                        <div class="relative">
+                            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold ml-1">LON</span>
+                            <input id="dest-lon" type="number" value="-71.61" step="0.01" class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-2 py-1.5 text-xs font-mono text-slate-600 focus:border-emerald-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección: Modos de Transporte -->
+            <div class="space-y-3 pt-4 border-t border-slate-100">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-6 h-6 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">
+                        <i data-lucide="truck" class="w-3 h-3"></i>
+                    </div>
+                    <h2 class="text-xs font-black text-slate-700 uppercase tracking-wide">Comparativa Logística</h2>
+                </div>
+
+                <!-- Modo 1 -->
+                <div class="p-3 bg-white rounded-xl border-l-4 border-blue-400 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-center mb-2">
+                        <input id="mode1-name" type="text" value="Marítimo Económico" class="bg-transparent font-bold text-sm text-slate-800 focus:outline-none w-full">
+                        <input id="mode1-color" type="color" value="#38BDF8" class="w-6 h-6 rounded cursor-pointer border-none p-0 bg-transparent">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-slate-50 p-2 rounded-lg">
+                            <label class="text-[9px] text-slate-400 font-bold uppercase block">Costo (USD)</label>
+                            <input id="mode1-cost" type="number" value="2100" class="w-full bg-transparent font-mono text-xs font-bold text-slate-600 focus:outline-none">
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded-lg">
+                            <label class="text-[9px] text-slate-400 font-bold uppercase block">Tiempo (Días)</label>
+                            <input id="mode1-time" type="number" value="38" class="w-full bg-transparent font-mono text-xs font-bold text-slate-600 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modo 2 -->
+                <div class="p-3 bg-white rounded-xl border-l-4 border-red-400 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-center mb-2">
+                        <input id="mode2-name" type="text" value="Aéreo Express" class="bg-transparent font-bold text-sm text-slate-800 focus:outline-none w-full">
+                        <input id="mode2-color" type="color" value="#F87171" class="w-6 h-6 rounded cursor-pointer border-none p-0 bg-transparent">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-slate-50 p-2 rounded-lg">
+                            <label class="text-[9px] text-slate-400 font-bold uppercase block">Costo (USD)</label>
+                            <input id="mode2-cost" type="number" value="8500" class="w-full bg-transparent font-mono text-xs font-bold text-slate-600 focus:outline-none">
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded-lg">
+                            <label class="text-[9px] text-slate-400 font-bold uppercase block">Tiempo (Días)</label>
+                            <input id="mode2-time" type="number" value="4" class="w-full bg-transparent font-mono text-xs font-bold text-slate-600 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección: Resumen (Calculado) -->
+            <div class="bg-slate-800 rounded-xl p-4 text-white shadow-lg mt-auto">
+                <div class="flex justify-between items-end">
+                    <div>
+                        <p class="text-xs text-slate-400 font-bold uppercase mb-1">Distancia Estimada</p>
+                        <strong id="route-distance" class="text-2xl font-mono text-brand-400">-- km</strong>
+                    </div>
+                    <div class="p-2 bg-white/10 rounded-lg">
+                        <i data-lucide="globe" class="w-5 h-5 text-brand-400"></i>
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-2 border-t border-slate-700 pt-2">
+                    Cálculo geodésico (Línea recta aproximada).
+                </p>
+            </div>
+
+        </div>
+        
+        <!-- Footer Panel -->
+        <div class="p-4 border-t border-slate-100 bg-slate-50 text-center">
+             <button id="calculate-btn" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2">
+                 <i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Ruta
+             </button>
+        </div>
+    </aside>
+
+    <!-- ================= CANVAS DEL MAPA ================= -->
+    <main id="canvas-wrap" class="flex-1 relative bg-slate-200">
+        
+        <!-- Botones Flotantes -->
+        <div class="absolute top-4 left-4 z-[1000] flex gap-2">
+            <button id="panel-toggle-btn" class="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors border border-slate-200">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <button id="orientation-toggle-btn" class="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors border border-slate-200" title="Centrar Mapa">
+                <i data-lucide="crosshair" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Contenedor Leaflet -->
+        <div id="mapContainer" class="w-full h-full outline-none"></div>
+
+        <!-- Leyenda Flotante -->
+        <div class="absolute bottom-6 right-6 z-[1000] bg-white/90 backdrop-blur px-4 py-2 rounded-lg shadow-lg border border-slate-200 text-xs font-bold text-slate-600 pointer-events-none flex items-center gap-3">
+            <div class="flex items-center"><span class="w-2 h-2 rounded-full bg-blue-500 mr-1"></span> Origen</div>
+            <span class="text-slate-300">|</span>
+            <div class="flex items-center"><span class="w-2 h-2 rounded-full bg-red-500 mr-1"></span> Destino</div>
+        </div>
+
+    </main>
+
+    <!-- SCRIPT DE LÓGICA -->
+    <script>
+        // Inicializar Iconos
+        lucide.createIcons();
+
+        // ========== 1. DATOS DE CIUDADES ==========
+        const CITIES = [
+            { name: "Shanghai", lat: 31.23, lon: 121.47 },
+            { name: "Buenaventura", lat: 3.88, lon: -77.02 },
+            { name: "Valparaíso", lat: -33.04, lon: -71.61 },
+            { name: "Rotterdam", lat: 51.92, lon: 4.47 },
+            { name: "Los Angeles", lat: 34.05, lon: -118.24 },
+            { name: "Cartagena", lat: 10.39, lon: -75.48 },
+            { name: "Singapur", lat: 1.35, lon: 103.81 },
+            { name: "Hamburgo", lat: 53.55, lon: 9.99 },
+            { name: "Veracruz", lat: 19.17, lon: -96.13 },
+            { name: "Santos", lat: -23.96, lon: -46.33 }
+        ];
+
+        // ========== 2. INICIALIZAR MAPA LEAFLET ==========
+        // CartoDB Voyager para un look limpio y moderno
+        const map = L.map('mapContainer', { zoomControl: false }).setView([20, 0], 2);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        // Iconos Personalizados
+        const createIcon = (color) => {
+            return L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style="background-color: ${color}; width: 16px; height: 16px;" class="marker-icon"></div>`,
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+        };
+
+        let originMarker, destMarker, routeLine;
+
+        // ========== 3. FUNCIONES LÓGICAS ==========
+
+        function populateSelects() {
+            const originSelect = document.getElementById('origin-select');
+            const destSelect = document.getElementById('dest-select');
+
+            CITIES.forEach(city => {
+                const opt1 = new Option(city.name, JSON.stringify(city));
+                const opt2 = new Option(city.name, JSON.stringify(city));
+                originSelect.add(opt1);
+                destSelect.add(opt2);
+            });
+        }
+
+        function updateInputsFromSelect(type) {
+            const select = document.getElementById(`${type}-select`);
+            if(!select.value) return;
+
+            const city = JSON.parse(select.value);
+            document.getElementById(`${type}-name`).value = city.name;
+            document.getElementById(`${type}-lat`).value = city.lat;
+            document.getElementById(`${type}-lon`).value = city.lon;
+            
+            updateMap();
+        }
+
+        function getCoords() {
+            return {
+                origin: {
+                    lat: parseFloat(document.getElementById('origin-lat').value),
+                    lon: parseFloat(document.getElementById('origin-lon').value)
+                },
+                dest: {
+                    lat: parseFloat(document.getElementById('dest-lat').value),
+                    lon: parseFloat(document.getElementById('dest-lon').value)
+                }
+            };
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radio Tierra km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return Math.round(R * c);
+        }
+
+        function updateMap() {
+            const coords = getCoords();
+
+            // 1. Limpiar anteriores
+            if(originMarker) map.removeLayer(originMarker);
+            if(destMarker) map.removeLayer(destMarker);
+            if(routeLine) map.removeLayer(routeLine);
+
+            // 2. Crear Marcadores
+            originMarker = L.marker([coords.origin.lat, coords.origin.lon], { icon: createIcon('#3b82f6') }).addTo(map);
+            destMarker = L.marker([coords.dest.lat, coords.dest.lon], { icon: createIcon('#ef4444') }).addTo(map);
+
+            // 3. Dibujar Línea (Geodésica simple)
+            const latlngs = [
+                [coords.origin.lat, coords.origin.lon],
+                [coords.dest.lat, coords.dest.lon]
+            ];
+
+            // Color de la ruta basado en modo seleccionado
+            const modeColor = document.getElementById('mode1-color').value;
+
+            routeLine = L.polyline(latlngs, {
+                color: modeColor,
+                weight: 3,
+                opacity: 0.8,
+                lineCap: 'round'
+            }).addTo(map);
+
+            // 4. Ajustar Vista
+            map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+
+            // 5. Calcular Distancia
+            const dist = calculateDistance(coords.origin.lat, coords.origin.lon, coords.dest.lat, coords.dest.lon);
+            document.getElementById('route-distance').innerText = dist.toLocaleString() + " km";
+        }
+
+        // ========== 4. EVENTOS ==========
+        
+        document.getElementById('origin-select').addEventListener('change', () => updateInputsFromSelect('origin'));
+        document.getElementById('dest-select').addEventListener('change', () => updateInputsFromSelect('dest'));
+        document.getElementById('calculate-btn').addEventListener('click', updateMap);
+        
+        document.getElementById('orientation-toggle-btn').addEventListener('click', () => {
+            const coords = getCoords();
+            map.setView([coords.origin.lat, coords.origin.lon], 3);
+        });
+
+        // Toggle Panel Móvil
+        const panel = document.getElementById('panel');
+        document.getElementById('panel-toggle-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            panel.classList.toggle('-translate-x-full');
+            // En móvil
+            if(window.innerWidth < 768) {
+                 if(panel.classList.contains('-translate-x-full')) panel.style.transform = 'translateX(-100%)';
+                 else panel.style.transform = 'translateX(0)';
+            } else {
+                 // En Desktop (transformación por clase de Tailwind funciona mejor si toggleas la clase translate)
+            }
+        });
+        
+        document.getElementById('mobile-close-btn').addEventListener('click', () => {
+            panel.classList.add('-translate-x-full');
+            if(window.innerWidth < 768) panel.style.transform = 'translateX(-100%)';
+        });
+
+        // Inicialización
+        populateSelects();
+        
+        // Carga inicial (delay pequeño para asegurar carga de mapa)
+        setTimeout(() => {
+            updateMap();
+            map.invalidateSize();
+        }, 500);
+
+        // Fix resize
+        window.addEventListener('resize', () => map.invalidateSize());
+
+    </script>
+</body>
+</html>

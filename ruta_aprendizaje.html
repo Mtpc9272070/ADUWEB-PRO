@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADUWEB | Ruta de Aprendizaje</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        emerald: { 50: '#ecfdf5', 500: '#10b981', 600: '#059669' },
+                        purple: { 50: '#faf5ff', 100: '#f3e8ff', 500: '#a855f7', 600: '#9333ea', 900: '#581c87' },
+                        slate: { 850: '#1e293b' }
+                    },
+                    boxShadow: {
+                        'glow': '0 0 20px rgba(168, 85, 247, 0.4)',
+                        'card': '0 10px 30px -5px rgba(0, 0, 0, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        
+        /* Línea conectora animada */
+        .path-line {
+            position: absolute;
+            left: 24px; 
+            top: 40px;
+            bottom: -20px;
+            width: 4px;
+            background: #e2e8f0;
+            z-index: 0;
+            transition: height 1s ease-in-out;
+        }
+        .path-line.active {
+            background: linear-gradient(to bottom, #10b981 0%, #a855f7 100%);
+            height: 0%; /* Se ajusta dinámicamente con JS */
+        }
+
+        @keyframes unlock {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .current-node { animation: unlock 2s infinite ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-28 selection:bg-purple-100 selection:text-purple-800 min-h-screen">
+
+    <div id="loading-screen" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mb-4"></div>
+        <p class="text-sm font-bold text-slate-400">Sincronizando progreso...</p>
+    </div>
+
+    <header class="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-slate-200 z-40 transition-all duration-300">
+        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+            <button id="btn-back" onclick="RouteLogic.goBack()" class="w-10 h-10 rounded-full hover:bg-slate-50 flex items-center justify-center transition-colors">
+                <i data-lucide="arrow-left" class="w-6 h-6 text-slate-600"></i>
+            </button>
+            
+            <div class="flex flex-col items-center">
+                <h1 id="header-title" class="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
+                    <i data-lucide="map" class="w-5 h-5 text-purple-600"></i>
+                    MI RUTA
+                </h1>
+            </div>
+
+            <div class="flex items-center gap-1 bg-purple-50 px-2 py-1 rounded-full border border-purple-100">
+                <i data-lucide="trophy" class="w-4 h-4 text-purple-500 fill-purple-500"></i>
+                <span class="text-xs font-bold text-purple-700" id="global-percent-display">0%</span>
+            </div>
+        </div>
+        
+        <div class="h-1 w-full bg-slate-100">
+            <div id="global-progress-bar" class="h-full bg-gradient-to-r from-emerald-400 to-purple-500 w-0 transition-all duration-1000 rounded-r-full"></div>
+        </div>
+    </header>
+
+    <div class="h-20"></div>
+
+    <main class="max-w-md mx-auto px-6 py-6 space-y-8 relative">
+
+        <div id="view-modules" class="space-y-8 relative">
+            <div class="path-line h-full top-[40px] !bg-slate-200"></div> 
+            <div id="path-line-active" class="path-line active"></div> 
+
+            <div id="modules-list" class="space-y-8">
+                </div>
+
+            <div class="relative z-10 flex flex-col items-center justify-center py-6 gap-2 mt-8">
+                <div id="final-trophy" class="w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-3xl rotate-3 shadow-xl flex items-center justify-center border-4 border-white ring-4 ring-orange-100 transition-all grayscale opacity-80">
+                    <i data-lucide="award" class="w-10 h-10 text-white"></i>
+                </div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest bg-white px-3 py-1 rounded-full shadow-sm">Certificación Semestral</span>
+            </div>
+        </div>
+
+        <div id="view-levels" class="hidden space-y-6 animate-fade-in">
+             </div>
+
+    </main>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.11/firebase-app.js';
+        import { getDatabase, ref, get, update, query, orderByChild } from 'https://www.gstatic.com/firebasejs/9.6.11/firebase-database.js';
+        import { firebaseConfig } from './config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Módulos Fijos (Estructura base, igual que en icogame.html)
+        const TRAINING_MODULES = [
+            { id: 'module_1', name: 'Fundamentos Comex', icon: 'globe' }, // Iconos mapeados a Lucide
+            { id: 'module_2', name: 'Incoterms y Negociación', icon: 'handshake' },
+            { id: 'module_3', name: 'Clasificación Arancelaria', icon: 'search' },
+            { id: 'module_4', name: 'Valoración Aduanera', icon: 'calculator' },
+            { id: 'module_5', name: 'Logística y Documentos', icon: 'truck' }
+        ];
+
+        const RouteLogic = {
+            playerKey: null,
+            userProgress: {},
+            currentView: 'modules', // 'modules' o 'levels'
+
+            init: async function() {
+                this.playerKey = localStorage.getItem('aduweb_player_key');
+                if (!this.playerKey) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Cargar progreso del usuario
+                await this.loadUserProgress();
+                
+                // Renderizar vista principal
+                await this.renderModulesRoute();
+                
+                // Ocultar loader
+                document.getElementById('loading-screen').style.opacity = '0';
+                setTimeout(() => document.getElementById('loading-screen').style.display = 'none', 500);
+            },
+
+            loadUserProgress: async function() {
+                const progressRef = ref(db, `usuarios/${this.playerKey}/progreso_modulos`);
+                const snapshot = await get(progressRef);
+                this.userProgress = snapshot.exists() ? snapshot.val() : {};
+            },
+
+            // --- VISTA 1: RUTA DE MÓDULOS ---
+            renderModulesRoute: async function() {
+                this.currentView = 'modules';
+                document.getElementById('view-modules').classList.remove('hidden');
+                document.getElementById('view-levels').classList.add('hidden');
+                document.getElementById('header-title').innerHTML = '<i data-lucide="map" class="w-5 h-5 text-purple-600"></i> MI RUTA';
+                document.getElementById('btn-back').onclick = () => window.location.href = 'index.html';
+
+                const container = document.getElementById('modules-list');
+                container.innerHTML = '';
+                
+                let totalGlobalProgress = 0;
+                let previousModuleCompleted = true; // El primero siempre abierto
+                let activeFound = false;
+
+                for (let i = 0; i < TRAINING_MODULES.length; i++) {
+                    const mod = TRAINING_MODULES[i];
+                    
+                    // 1. Calcular Progreso Real del Módulo (Fetching Levels)
+                    const levelsSnapshot = await get(ref(db, `learning_path/modules/${mod.id}/levels`));
+                    const levelsData = levelsSnapshot.exists() ? levelsSnapshot.val() : {};
+                    
+                    let currentModuleProgress = 0;
+                    if (this.userProgress[mod.id]) {
+                        Object.keys(this.userProgress[mod.id]).forEach(completedLevelId => {
+                            if (levelsData[completedLevelId] && this.userProgress[mod.id][completedLevelId].completed) {
+                                currentModuleProgress += levelsData[completedLevelId].percentage || 0;
+                            }
+                        });
+                    }
+                    // Capar al 100%
+                    currentModuleProgress = Math.min(100, Math.round(currentModuleProgress));
+                    
+                    // Sumar al global (promedio simple)
+                    totalGlobalProgress += currentModuleProgress;
+
+                    // 2. Determinar Estado
+                    let state = 'LOCKED';
+                    if (currentModuleProgress >= 100) {
+                        state = 'COMPLETED';
+                    } else if (previousModuleCompleted) {
+                        state = 'ACTIVE';
+                    }
+
+                    // 3. Renderizar Tarjeta
+                    container.innerHTML += this.createModuleCard(mod, state, currentModuleProgress, i + 1);
+
+                    // Lógica para el siguiente
+                    if (state !== 'COMPLETED') previousModuleCompleted = false;
+                }
+
+                // Actualizar UI Global
+                const finalGlobalPercent = Math.round(totalGlobalProgress / TRAINING_MODULES.length);
+                document.getElementById('global-progress-bar').style.width = `${finalGlobalPercent}%`;
+                document.getElementById('global-percent-display').innerText = `${finalGlobalPercent}%`;
+                document.getElementById('path-line-active').style.height = `${finalGlobalPercent}%`; // La línea crece con el progreso
+                
+                // Actualizar en DB
+                update(ref(db, `usuarios/${this.playerKey}`), { progreso_entrenamiento: finalGlobalPercent });
+
+                lucide.createIcons();
+            },
+
+            createModuleCard: function(mod, state, percent, index) {
+                // COMPLETADO
+                if (state === 'COMPLETED') {
+                    return `
+                    <div class="relative z-10 flex gap-4 group animate-fade-in cursor-pointer" onclick="RouteLogic.openModuleLevels('${mod.id}', '${mod.name}')">
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg border-4 border-white ring-2 ring-emerald-100">
+                                <i data-lucide="check" class="w-6 h-6 stroke-[3px]"></i>
+                            </div>
+                        </div>
+                        <div class="flex-1 bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 opacity-80 hover:opacity-100 transition-all">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-[10px] font-bold text-emerald-600 uppercase">Módulo ${index}</span>
+                                <span class="text-[10px] font-bold text-emerald-600">100%</span>
+                            </div>
+                            <h3 class="font-bold text-slate-800 text-sm">${mod.name}</h3>
+                            <div class="text-xs text-emerald-600 font-bold mt-2 flex items-center gap-1">
+                                <i data-lucide="layers" class="w-3 h-3"></i> Ver Niveles
+                            </div>
+                        </div>
+                    </div>`;
+                }
+
+                // ACTIVO
+                if (state === 'ACTIVE') {
+                    return `
+                    <div class="relative z-10 flex gap-4 cursor-pointer" onclick="RouteLogic.openModuleLevels('${mod.id}', '${mod.name}')">
+                        <div class="flex flex-col items-center">
+                            <div class="w-14 h-14 rounded-full bg-purple-600 text-white flex items-center justify-center shadow-glow border-4 border-white ring-4 ring-purple-100 current-node relative">
+                                <i data-lucide="${mod.icon}" class="w-6 h-6 fill-current ml-1"></i>
+                                <span class="absolute -top-1 -right-1 flex h-4 w-4">
+                                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                                  <span class="relative inline-flex rounded-full h-4 w-4 bg-purple-500"></span>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex-1 bg-white p-5 rounded-3xl shadow-xl border-l-4 border-purple-500 transform scale-105 origin-left transition-all">
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="text-[10px] font-bold text-purple-600 uppercase tracking-wider">En Curso</span>
+                                <span class="text-[10px] font-bold text-purple-600">${percent}%</span>
+                            </div>
+                            <h3 class="font-black text-slate-800 text-lg leading-tight mb-2">${mod.name}</h3>
+                            
+                            <div class="w-full bg-slate-100 rounded-full h-1.5 mb-4">
+                                <div class="bg-purple-500 h-1.5 rounded-full" style="width: ${percent}%"></div>
+                            </div>
+
+                            <button class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-purple-200 transition-transform active:scale-95 flex items-center justify-center gap-2">
+                                CONTINUAR <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>`;
+                }
+
+                // BLOQUEADO
+                return `
+                <div class="relative z-10 flex gap-4 grayscale opacity-60">
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center border-4 border-white">
+                            <i data-lucide="lock" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 border-dashed">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">Módulo ${index}</span>
+                            <i data-lucide="lock" class="w-3 h-3 text-slate-300"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-500 text-sm">${mod.name}</h3>
+                    </div>
+                </div>`;
+            },
+
+            // --- VISTA 2: NIVELES DEL MÓDULO ---
+            openModuleLevels: async function(moduleId, moduleName) {
+                this.currentView = 'levels';
+                
+                // Transición de Vistas
+                document.getElementById('view-modules').classList.add('hidden');
+                document.getElementById('view-levels').classList.remove('hidden');
+                
+                // Actualizar Header
+                document.getElementById('header-title').innerText = moduleName;
+                document.getElementById('btn-back').onclick = () => this.renderModulesRoute();
+
+                const container = document.getElementById('view-levels');
+                container.innerHTML = '<div class="flex justify-center p-10"><div class="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div></div>';
+
+                // Fetch Niveles ordenados
+                const levelsRef = query(ref(db, `learning_path/modules/${moduleId}/levels`), orderByChild('order'));
+                const snapshot = await get(levelsRef);
+
+                if (!snapshot.exists()) {
+                    container.innerHTML = '<p class="text-center text-slate-400 mt-10">Este módulo aún no tiene contenido.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                const levels = Object.values(snapshot.val());
+                
+                // Lógica de desbloqueo secuencial dentro de niveles
+                let previousLevelCompleted = true; 
+
+                levels.forEach((level, idx) => {
+                    const isCompleted = this.userProgress[moduleId]?.[level.id]?.completed === true;
+                    const isLocked = !previousLevelCompleted && !isCompleted;
+                    
+                    // Renderizar Nivel
+                    container.innerHTML += this.createLevelCard(level, isCompleted, isLocked, moduleId, idx + 1);
+
+                    if (!isCompleted) previousLevelCompleted = false;
+                    else previousLevelCompleted = true;
+                });
+                
+                lucide.createIcons();
+            },
+
+            createLevelCard: function(level, isCompleted, isLocked, moduleId, index) {
+                let statusColor = isLocked ? "text-slate-400" : (isCompleted ? "text-emerald-500" : "text-purple-500");
+                let statusIcon = isLocked ? "lock" : (isCompleted ? "check-circle" : "play-circle");
+                let borderClass = isLocked ? "border-slate-100" : (isCompleted ? "border-emerald-100" : "border-purple-100");
+                let bgClass = isLocked ? "bg-slate-50" : "bg-white";
+                let opacity = isLocked ? "opacity-60" : "opacity-100";
+
+                // Botón de acción
+                let actionBtn = '';
+                if (!isLocked) {
+                    if (isCompleted) {
+                        actionBtn = `
+                        <button onclick="RouteLogic.startStudy('${moduleId}', '${level.id}')" class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-200">
+                            Repasar
+                        </button>`;
+                    } else {
+                        // Lógica: Primero Estudiar, Luego Evaluar
+                        const hasStudied = sessionStorage.getItem(`studied_${moduleId}_${level.id}`) === 'true';
+                        if (!hasStudied) {
+                            actionBtn = `
+                            <button onclick="RouteLogic.startStudy('${moduleId}', '${level.id}')" class="text-xs font-bold text-white bg-yellow-500 px-4 py-2 rounded-lg shadow-md hover:bg-yellow-600 flex items-center gap-1">
+                                <i data-lucide="book-open" class="w-3 h-3"></i> Estudiar
+                            </button>`;
+                        } else {
+                            // Detectar tipo de actividad
+                            const target = level.custom_activity?.type === 'context_quiz' ? 'actividad_player.html' : 'eval_rol.html';
+                            actionBtn = `
+                            <button onclick="window.location.href='${target}?moduleId=${moduleId}&levelId=${level.id}'" class="text-xs font-bold text-white bg-purple-600 px-4 py-2 rounded-lg shadow-md hover:bg-purple-700 flex items-center gap-1 animate-pulse">
+                                <i data-lucide="zap" class="w-3 h-3"></i> Evaluar
+                            </button>`;
+                        }
+                    }
+                }
+
+                return `
+                <div class="flex gap-4 items-center ${opacity}">
+                    <div class="flex flex-col items-center gap-1">
+                        <div class="w-8 h-8 flex items-center justify-center rounded-full bg-white border shadow-sm font-bold text-xs text-slate-500">
+                            ${index}
+                        </div>
+                        ${!isLocked && !isCompleted ? '<div class="h-full w-0.5 bg-purple-200"></div>' : ''}
+                    </div>
+                    
+                    <div class="flex-1 ${bgClass} p-4 rounded-xl border ${borderClass} shadow-sm flex justify-between items-center">
+                        <div>
+                            <h4 class="font-bold text-slate-800 text-sm mb-1">${level.name}</h4>
+                            <p class="text-xs text-slate-500 line-clamp-1">${level.desc || 'Sin descripción'}</p>
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <i data-lucide="${statusIcon}" class="w-5 h-5 ${statusColor}"></i>
+                            ${actionBtn}
+                        </div>
+                    </div>
+                </div>`;
+            },
+
+            // --- ACCIONES DE ESTUDIO (Importado de icogame) ---
+            startStudy: async function(moduleId, levelId) {
+                // Fetch contenido del nivel para obtener el PDF/Doc
+                const snapshot = await get(ref(db, `learning_path/modules/${moduleId}/content/${levelId}`));
+                
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    const fileId = this.getFileIdFromUrl(data.documentUrl);
+
+                    if (!fileId) {
+                        Swal.fire('Error', 'No hay documento asociado.', 'warning');
+                        return;
+                    }
+
+                    const embedUrl = `https://docs.google.com/document/d/${fileId}/preview`;
+                    
+                    // Modal con SweetAlert2
+                    Swal.fire({
+                        title: `<span class="text-lg font-bold">${data.title || 'Material de Estudio'}</span>`,
+                        html: `
+                            <div class="space-y-4">
+                                <p class="text-sm text-slate-600 bg-slate-100 p-2 rounded">${data.content || 'Lee con atención.'}</p>
+                                <div class="w-full h-[50vh] bg-slate-200 rounded-lg overflow-hidden relative">
+                                    <iframe src="${embedUrl}" class="w-full h-full border-0"></iframe>
+                                </div>
+                                <div>
+                                    <div class="w-full bg-slate-200 rounded-full h-2">
+                                        <div id="read-timer-bar" class="bg-purple-600 h-2 rounded-full transition-all duration-1000" style="width: 100%"></div>
+                                    </div>
+                                    <p class="text-xs text-slate-400 mt-1">Lectura mínima requerida...</p>
+                                </div>
+                            </div>
+                        `,
+                        width: '90%',
+                        showConfirmButton: true,
+                        confirmButtonText: 'He terminado de leer',
+                        confirmButtonColor: '#9333ea',
+                        didOpen: () => {
+                            const btn = Swal.getConfirmButton();
+                            btn.disabled = true;
+                            btn.style.opacity = 0.5;
+                            
+                            let timeLeft = 15;
+                            const bar = document.getElementById('read-timer-bar');
+                            const timer = setInterval(() => {
+                                timeLeft--;
+                                bar.style.width = `${(timeLeft/15)*100}%`;
+                                if(timeLeft <= 0) {
+                                    clearInterval(timer);
+                                    btn.disabled = false;
+                                    btn.style.opacity = 1;
+                                    btn.innerText = "¡Listo para la evaluación!";
+                                }
+                            }, 1000);
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            sessionStorage.setItem(`studied_${moduleId}_${levelId}`, 'true');
+                            // Recargar la vista de niveles para activar el botón de evaluar
+                            this.openModuleLevels(moduleId, document.getElementById('header-title').innerText);
+                        }
+                    });
+
+                } else {
+                    Swal.fire('Error', 'No se encontró contenido para este nivel.', 'error');
+                }
+            },
+
+            getFileIdFromUrl: function(url) {
+                const match = url ? url.match(/\/(?:document|file)\/d\/([a-zA-Z0-9_-]+)/) : null;
+                return match ? match[1] : null;
+            },
+
+            goBack: function() {
+                if(this.currentView === 'levels') {
+                    this.renderModulesRoute();
+                } else {
+                    window.location.href = 'index.html';
+                }
+            }
+        };
+
+        // Exponer globalmente
+        window.RouteLogic = RouteLogic;
+
+        // Iniciar
+        document.addEventListener('DOMContentLoaded', () => {
+            RouteLogic.init();
+        });
+    </script>
+</body>
+</html>

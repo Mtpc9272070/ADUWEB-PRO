@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tasa de Cambio Aduanera | ADUWEB</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                extend: {
+                    colors: {
+                        emerald: { 50: '#ecfdf5', 500: '#10b981', 600: '#059669' },
+                        slate: { 850: '#1e293b' },
+                        teal: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 900: '#134e4a' },
+                        sky: { 600: '#0284c7' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-20 min-h-screen">
+
+    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-lg">
+        <div class="max-w-md mx-auto px-4 py-4 flex items-center gap-4">
+            <button onclick="window.history.back()" class="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            </button>
+            <div>
+                <h1 class="font-black text-lg tracking-tight flex items-center gap-2">
+                    <i data-lucide="dollar-sign" class="w-5 h-5 text-teal-400"></i>
+                    Tasa de Cambio (TRM)
+                </h1>
+                <p class="text-xs text-slate-400">Conversor oficial para aduanas</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 py-6 space-y-6">
+
+        <div class="bg-white p-6 rounded-3xl shadow-lg border border-sky-100 overflow-hidden relative">
+            <div class="absolute top-0 right-0 p-4 opacity-10">
+                <i data-lucide="trending-up" class="w-24 h-24 text-sky-600"></i>
+            </div>
+            
+            <div class="relative z-10">
+                <div class="flex items-center gap-2 mb-2">
+                    <i data-lucide="banknote" class="w-5 h-5 text-sky-600"></i>
+                    <span class="bg-sky-50 text-sky-700 text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wide border border-sky-100">TRM Oficial (Simulado)</span>
+                </div>
+                
+                <h2 class="text-xl font-medium text-slate-500 mt-2">1 USD = </h2>
+                <p class="text-5xl font-extrabold text-sky-700 tracking-tighter" id="officialRateDisplay">COP 3,900.00</p>
+                
+                <p class="text-xs text-slate-400 mt-4">
+                    <i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>
+                    Válido para la liquidación de tributos de hoy.
+                </p>
+            </div>
+        </div>
+
+
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <h2 class="font-bold text-lg mb-4 text-teal-700 flex items-center gap-2">
+                <i data-lucide="replace" class="w-5 h-5"></i>
+                Conversión Rápida
+            </h2>
+
+            <div class="grid grid-cols-5 gap-3">
+                <div class="col-span-2">
+                    <label for="amountInput" class="block text-xs font-bold text-slate-400 uppercase mb-1">Monto</label>
+                    <input type="number" id="amountInput" value="1000" oninput="convertCurrency()"
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl block p-3 transition-all font-medium">
+                </div>
+                <div class="col-span-3">
+                    <label for="fromCurrency" class="block text-xs font-bold text-slate-400 uppercase mb-1">De</label>
+                    <select id="fromCurrency" onchange="convertCurrency()"
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl block p-3 transition-all font-medium">
+                        <option value="USD" selected>USD - Dólar</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="JPY">JPY - Yen Japonés</option>
+                    </select>
+                </div>
+            </div>
+
+             <div class="flex justify-center my-4">
+                <i data-lucide="arrow-down-circle" class="w-6 h-6 text-teal-500"></i>
+             </div>
+
+            <div class="grid grid-cols-5 gap-3">
+                <div class="col-span-2">
+                    <label for="resultAmount" class="block text-xs font-bold text-slate-400 uppercase mb-1">Resultado</label>
+                    <div class="bg-teal-50 border border-teal-200 text-teal-700 text-sm rounded-xl block p-3 font-medium">
+                        <span id="resultAmount">0.00</span>
+                    </div>
+                </div>
+                <div class="col-span-3">
+                    <label for="toCurrency" class="block text-xs font-bold text-slate-400 uppercase mb-1">A</label>
+                    <select id="toCurrency" onchange="convertCurrency()"
+                        class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl block p-3 transition-all font-medium">
+                        <option value="COP" selected>COP - Peso Colombiano</option>
+                        <option value="MXN">MXN - Peso Mexicano</option>
+                        <option value="USD">USD - Dólar</option>
+                    </select>
+                </div>
+            </div>
+            
+            <p class="text-[10px] text-slate-400 mt-4 text-center">
+                <i data-lucide="alert-circle" class="w-3 h-3 inline mr-1"></i>
+                Las tasas son de referencia. Para liquidación, use el valor oficial del día.
+            </p>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // ----------------------------------------------------
+        // SIMULACIÓN DE TASAS DE CAMBIO
+        // ----------------------------------------------------
+
+        // TRM base (Simulación: 1 USD = 3900 COP)
+        const OFFICIAL_TRM_USD = 3900.00; 
+
+        // Tasas de conversión fijas (Mock API de tasas vs. COP)
+        const MOCK_RATES = {
+            "USD/COP": OFFICIAL_TRM_USD,
+            "EUR/COP": 4200.50,
+            "JPY/COP": 28.10,
+            "USD/MXN": 17.50,
+            "EUR/MXN": 19.80,
+            // Las inversas se calcularán
+        };
+        
+        // Formateador de moneda local (asumiendo Colombia por la TRM)
+        const localFormatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' });
+
+        function convertCurrency() {
+            const amount = parseFloat(document.getElementById('amountInput').value) || 0;
+            const from = document.getElementById('fromCurrency').value;
+            const to = document.getElementById('toCurrency').value;
+            const resultElement = document.getElementById('resultAmount');
+            
+            let convertedAmount = 0;
+            let rate = 1;
+
+            if (from === to) {
+                convertedAmount = amount;
+                rate = 1;
+            } else {
+                const forwardKey = `${from}/${to}`;
+                const inverseKey = `${to}/${from}`;
+
+                if (MOCK_RATES[forwardKey]) {
+                    rate = MOCK_RATES[forwardKey];
+                    convertedAmount = amount * rate;
+                } else if (MOCK_RATES[inverseKey]) {
+                    rate = 1 / MOCK_RATES[inverseKey];
+                    convertedAmount = amount * rate;
+                } else {
+                    // Si no hay tasa directa, asumimos conversión a través de USD (simulación)
+                    if (from !== 'USD' && to !== 'USD') {
+                        // Primero a USD
+                        const rateToUSD = 1 / MOCK_RATES[`USD/${from}`] || 1; 
+                        const amountInUSD = amount * rateToUSD;
+                        // Luego de USD a TO
+                        rate = MOCK_RATES[`USD/${to}`] || 1;
+                        convertedAmount = amountInUSD * rate;
+                    } else {
+                         // Tasa no encontrada
+                         resultElement.innerText = "Error: Tasa no definida";
+                         return;
+                    }
+                }
+            }
+            
+            // Mostrar resultado formateado
+            const finalFormat = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(convertedAmount);
+            resultElement.innerText = finalFormat;
+        }
+
+        // Inicialización y actualización de la TRM destacada
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializar la TRM destacada con el formato local
+            document.getElementById('officialRateDisplay').innerText = localFormatter.format(OFFICIAL_TRM_USD);
+            
+            // Ejecutar la primera conversión
+            convertCurrency();
+        });
+    </script>
+</body>
+</html>
